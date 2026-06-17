@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Daily Routine</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+  <meta name="theme-color" content="#111827" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <p class="eyebrow">Daily Routine</p>
+      <h1 id="todayTitle">Today</h1>
+      <p id="dateText" class="date-text"></p>
+    </section>
+
+    <section class="card progress-card">
+      <div>
+        <p class="label">Today's Progress</p>
+        <h2 id="progressText">0/1</h2>
+      </div>
+      <div class="ring" aria-label="Progress">
+        <span id="progressPercent">0%</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-header">
+        <div>
+          <p class="label">Today's Habit</p>
+          <h2>Read my book</h2>
+        </div>
+        <button id="resetTodayBtn" class="small-btn" type="button">Reset</button>
+      </div>
+
+      <button id="readingHabit" class="habit-button" type="button">
+        <span class="checkbox" aria-hidden="true"></span>
+        <span>
+          <strong>Read today</strong>
+          <small>Tap when completed</small>
+        </span>
+      </button>
+    </section>
+
+    <section class="stats-grid">
+      <div class="card stat-card">
+        <p class="label">Current Streak</p>
+        <h2 id="streakText">0 days</h2>
+      </div>
+      <div class="card stat-card">
+        <p class="label">This Week</p>
+        <h2 id="weekText">0/7</h2>
+      </div>
+    </section>
+
+    <section class="card">
+      <p class="label">Recent Days</p>
+      <div id="recentDays" class="recent-days"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
