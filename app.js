@@ -1,376 +1,48 @@
-const HABITS_KEY="dailyRoutineHabits.v7";
-const COMPLETIONS_KEY="dailyRoutineCompletions.v7";
-const OLD_KEYS=[
-  ["dailyRoutineHabits.v6","dailyRoutineCompletions.v6"],
-  ["dailyRoutineHabits.v5","dailyRoutineCompletions.v5"],
-  ["dailyRoutineHabits.v4","dailyRoutineCompletions.v4"],
-  ["dailyRoutineHabits.v3","dailyRoutineCompletions.v3"],
-  ["dailyRoutineHabits.v2","dailyRoutineCompletions.v2"]
-];
-
+const HABITS_KEY="dailyRoutineHabits.v8";
+const COMPLETIONS_KEY="dailyRoutineCompletions.v8";
+const OLD_KEYS=[["dailyRoutineHabits.v7","dailyRoutineCompletions.v7"],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6"],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5"],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4"],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3"],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2"]];
 const defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[]}];
-
-const todayTitle=document.getElementById("todayTitle");
-const dateText=document.getElementById("dateText");
-const progressText=document.getElementById("progressText");
-const progressPercent=document.getElementById("progressPercent");
-const todayHabits=document.getElementById("todayHabits");
-const emptyTodayText=document.getElementById("emptyTodayText");
-const resetTodayBtn=document.getElementById("resetTodayBtn");
-const streakText=document.getElementById("streakText");
-const weekText=document.getElementById("weekText");
-const recentDays=document.getElementById("recentDays");
-const habitForm=document.getElementById("habitForm");
-const habitName=document.getElementById("habitName");
-const habitSchedule=document.getElementById("habitSchedule");
-const customDays=document.getElementById("customDays");
-const allHabits=document.getElementById("allHabits");
-const openSettingsBtn=document.getElementById("openSettingsBtn");
-const closeSettingsBtn=document.getElementById("closeSettingsBtn");
-const settingsPanel=document.getElementById("settingsPanel");
-const exportBtn=document.getElementById("exportBtn");
-const importBtn=document.getElementById("importBtn");
-const backupBox=document.getElementById("backupBox");
-const backupMessage=document.getElementById("backupMessage");
-const formTitle=document.getElementById("formTitle");
-const formModeLabel=document.getElementById("formModeLabel");
-const saveHabitBtn=document.getElementById("saveHabitBtn");
-const cancelEditBtn=document.getElementById("cancelEditBtn");
-
-let selectedCustomDays=[];
-let editingHabitId=null;
-
+const $=id=>document.getElementById(id);
+const todayTitle=$("todayTitle"),dateText=$("dateText"),progressText=$("progressText"),progressPercent=$("progressPercent"),todayHabits=$("todayHabits"),emptyTodayText=$("emptyTodayText"),resetTodayBtn=$("resetTodayBtn"),streakText=$("streakText"),weekText=$("weekText"),recentDays=$("recentDays"),habitForm=$("habitForm"),habitName=$("habitName"),habitSchedule=$("habitSchedule"),customDays=$("customDays"),allHabits=$("allHabits"),habitStats=$("habitStats"),openSettingsBtn=$("openSettingsBtn"),closeSettingsBtn=$("closeSettingsBtn"),settingsPanel=$("settingsPanel"),exportBtn=$("exportBtn"),importBtn=$("importBtn"),backupBox=$("backupBox"),backupMessage=$("backupMessage"),formTitle=$("formTitle"),formModeLabel=$("formModeLabel"),saveHabitBtn=$("saveHabitBtn"),cancelEditBtn=$("cancelEditBtn");
+let selectedCustomDays=[],editingHabitId=null;
 function safeParse(value,fallback){try{return JSON.parse(value)||fallback}catch{return fallback}}
-
-function getLocalDateKey(date=new Date()){
-  const year=date.getFullYear();
-  const month=String(date.getMonth()+1).padStart(2,"0");
-  const day=String(date.getDate()).padStart(2,"0");
-  return `${year}-${month}-${day}`;
-}
-
-function dateFromOffset(offset=0){
-  const date=new Date();
-  date.setHours(12,0,0,0);
-  date.setDate(date.getDate()+offset);
-  return date;
-}
-
+function getLocalDateKey(date=new Date()){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`}
+function dateFromOffset(offset=0){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d}
 function getTodayKey(){return getLocalDateKey(new Date())}
-
-function migrateOldDataOnce(){
-  if(!localStorage.getItem(HABITS_KEY)){
-    for(const [habitKey] of OLD_KEYS){
-      const oldHabits=safeParse(localStorage.getItem(habitKey),null);
-      if(Array.isArray(oldHabits)&&oldHabits.length>0){
-        localStorage.setItem(HABITS_KEY,JSON.stringify(oldHabits));
-        break;
-      }
-    }
-  }
-  if(!localStorage.getItem(COMPLETIONS_KEY)){
-    for(const [,completionKey] of OLD_KEYS){
-      const oldCompletions=safeParse(localStorage.getItem(completionKey),null);
-      if(oldCompletions&&typeof oldCompletions==="object"){
-        localStorage.setItem(COMPLETIONS_KEY,JSON.stringify(oldCompletions));
-        break;
-      }
-    }
-  }
-}
-
-function formatDateLabel(){
-  const date=new Date();
-  todayTitle.textContent=date.toLocaleDateString(undefined,{weekday:"long"});
-  dateText.textContent=date.toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"});
-}
-
-function loadHabits(){
-  const saved=safeParse(localStorage.getItem(HABITS_KEY),null);
-  if(!saved||!Array.isArray(saved)||saved.length===0){
-    saveHabits(defaultHabits);
-    return defaultHabits;
-  }
-  return saved;
-}
-
+function migrateOldDataOnce(){if(!localStorage.getItem(HABITS_KEY)){for(const [habitKey] of OLD_KEYS){const oldHabits=safeParse(localStorage.getItem(habitKey),null);if(Array.isArray(oldHabits)&&oldHabits.length>0){localStorage.setItem(HABITS_KEY,JSON.stringify(oldHabits));break}}}if(!localStorage.getItem(COMPLETIONS_KEY)){for(const [,completionKey] of OLD_KEYS){const oldCompletions=safeParse(localStorage.getItem(completionKey),null);if(oldCompletions&&typeof oldCompletions==="object"){localStorage.setItem(COMPLETIONS_KEY,JSON.stringify(oldCompletions));break}}}}
+function formatDateLabel(){const date=new Date();todayTitle.textContent=date.toLocaleDateString(undefined,{weekday:"long"});dateText.textContent=date.toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"})}
+function loadHabits(){const saved=safeParse(localStorage.getItem(HABITS_KEY),null);if(!saved||!Array.isArray(saved)||saved.length===0){saveHabits(defaultHabits);return defaultHabits}return saved}
 function saveHabits(habits){localStorage.setItem(HABITS_KEY,JSON.stringify(habits))}
 function loadCompletions(){return safeParse(localStorage.getItem(COMPLETIONS_KEY),{})}
 function saveCompletions(data){localStorage.setItem(COMPLETIONS_KEY,JSON.stringify(data))}
-
-function makeId(name){
-  const slug=name.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
-  return `${slug||"habit"}-${Date.now()}`;
-}
-
-function isHabitDue(habit,date){
-  const day=date.getDay();
-  if(habit.schedule==="daily")return true;
-  if(habit.schedule==="weekdays")return day>=1&&day<=5;
-  if(habit.schedule==="weekends")return day===0||day===6;
-  if(habit.schedule==="custom")return habit.days.includes(day);
-  return true;
-}
-
-function habitsDueOn(date){return loadHabits().filter(habit=>isHabitDue(habit,date))}
-function isDone(dateKey,habitId){const completions=loadCompletions();return Boolean(completions[dateKey]?.[habitId])}
-
-function toggleDone(dateKey,habitId){
-  const completions=loadCompletions();
-  completions[dateKey]=completions[dateKey]||{};
-  completions[dateKey][habitId]=!completions[dateKey][habitId];
-  if(!completions[dateKey][habitId]) delete completions[dateKey][habitId];
-  saveCompletions(completions);
-  render();
-}
-
-function resetToday(){
-  const completions=loadCompletions();
-  delete completions[getTodayKey()];
-  saveCompletions(completions);
-  render();
-}
-
-function deleteHabit(habitId){
-  const habits=loadHabits().filter(habit=>habit.id!==habitId);
-  saveHabits(habits);
-  const completions=loadCompletions();
-  Object.keys(completions).forEach(dateKey=>{if(completions[dateKey]) delete completions[dateKey][habitId]});
-  saveCompletions(completions);
-  if(editingHabitId===habitId) resetFormMode();
-  render();
-}
-
-function getDailyProgress(date){
-  const dateKey=getLocalDateKey(date);
-  const dueHabits=habitsDueOn(date);
-  const total=dueHabits.length;
-  const completed=dueHabits.filter(habit=>isDone(dateKey,habit.id)).length;
-  const percent=total===0?100:Math.round((completed/total)*100);
-  return {completed,total,percent};
-}
-
-function getCurrentStreak(){
-  const todayProgress=getDailyProgress(new Date());
-  let offset=(todayProgress.total>0 && todayProgress.completed<todayProgress.total) ? -1 : 0;
-  let streak=0;
-
-  for(; offset>-365; offset--){
-    const progress=getDailyProgress(dateFromOffset(offset));
-    if(progress.total===0) continue;
-    if(progress.completed===progress.total) streak++;
-    else break;
-  }
-  return streak;
-}
-
-function getWeekCount(){
-  let completed=0,daysWithHabits=0;
-  for(let offset=0;offset>-7;offset--){
-    const progress=getDailyProgress(dateFromOffset(offset));
-    if(progress.total===0) continue;
-    daysWithHabits++;
-    if(progress.completed===progress.total) completed++;
-  }
-  return {completed,daysWithHabits};
-}
-
-function scheduleLabel(habit){
-  if(habit.schedule==="daily")return"Every day";
-  if(habit.schedule==="weekdays")return"Weekdays";
-  if(habit.schedule==="weekends")return"Weekends";
-  const labels=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  return habit.days.map(day=>labels[day]).join(", ")||"Custom";
-}
-
-function renderTodayHabits(){
-  todayHabits.innerHTML="";
-  const today=new Date();
-  const todayKey=getTodayKey();
-  const dueHabits=habitsDueOn(today);
-  emptyTodayText.classList.toggle("hidden",dueHabits.length>0);
-  dueHabits.forEach(habit=>{
-    const button=document.createElement("button");
-    const done=isDone(todayKey,habit.id);
-    button.className=`habit-button ${done?"done":""}`;
-    button.type="button";
-    button.innerHTML=`<span class="checkbox" aria-hidden="true"></span><span><strong>${habit.name}</strong><small>Tap when completed</small></span>`;
-    button.addEventListener("click",()=>toggleDone(todayKey,habit.id));
-    todayHabits.appendChild(button);
-  });
-}
-
-function renderRecentDays(){
-  recentDays.innerHTML="";
-  for(let offset=-6;offset<=0;offset++){
-    const date=dateFromOffset(offset);
-    const progress=getDailyProgress(date);
-    const day=document.createElement("div");
-    const done=progress.total>0&&progress.completed===progress.total;
-    day.className=`day-pill ${done?"done":""}`;
-    day.textContent=date.toLocaleDateString(undefined,{weekday:"short"});
-    recentDays.appendChild(day);
-  }
-}
-
-function renderAllHabits(){
-  allHabits.innerHTML="";
-  const habits=loadHabits();
-  if(habits.length===0){
-    allHabits.innerHTML=`<p class="empty-text">No habits yet. Add one above.</p>`;
-    return;
-  }
-  habits.forEach(habit=>{
-    const row=document.createElement("div");
-    row.className="habit-row";
-    row.innerHTML=`<div><strong>${habit.name}</strong><small>${scheduleLabel(habit)}</small></div><div class="habit-actions"><button class="edit-btn" type="button">Edit</button><button class="danger-btn" type="button">Delete</button></div>`;
-    row.querySelector(".edit-btn").addEventListener("click",()=>startEditHabit(habit.id));
-    row.querySelector(".danger-btn").addEventListener("click",()=>{if(confirm(`Delete "${habit.name}"?`)) deleteHabit(habit.id)});
-    allHabits.appendChild(row);
-  });
-}
-
-function render(){
-  const progress=getDailyProgress(new Date());
-  renderTodayHabits();
-  progressText.textContent=`${progress.completed}/${progress.total}`;
-  progressPercent.textContent=`${progress.percent}%`;
-  document.documentElement.style.setProperty("--progress",progress.percent);
-  const streak=getCurrentStreak();
-  streakText.textContent=`${streak} ${streak===1?"day":"days"}`;
-  const week=getWeekCount();
-  weekText.textContent=`${week.completed}/${week.daysWithHabits||7}`;
-  renderRecentDays();
-  renderAllHabits();
-}
-
-function setSelectedCustomDays(days){
-  selectedCustomDays=[...days];
-  customDays.querySelectorAll("button").forEach(button=>{
-    const day=Number(button.dataset.day);
-    button.classList.toggle("selected",selectedCustomDays.includes(day));
-  });
-}
-
-function resetFormMode(){
-  editingHabitId=null;
-  habitName.value="";
-  habitSchedule.value="daily";
-  setSelectedCustomDays([]);
-  customDays.classList.add("hidden");
-  formModeLabel.textContent="Manage Habits";
-  formTitle.textContent="Add Habit";
-  saveHabitBtn.textContent="Add Habit";
-  cancelEditBtn.classList.add("hidden");
-}
-
-function startEditHabit(habitId){
-  const habit=loadHabits().find(item=>item.id===habitId);
-  if(!habit) return;
-
-  editingHabitId=habitId;
-  habitName.value=habit.name;
-  habitSchedule.value=habit.schedule;
-  setSelectedCustomDays(Array.isArray(habit.days)?habit.days:[]);
-  customDays.classList.toggle("hidden",habit.schedule!=="custom");
-
-  formModeLabel.textContent="Editing Habit";
-  formTitle.textContent="Edit Habit";
-  saveHabitBtn.textContent="Save Changes";
-  cancelEditBtn.classList.remove("hidden");
-
-  document.querySelector(".manage-card").scrollIntoView({behavior:"smooth",block:"start"});
-}
-
-function saveHabitFromForm(event){
-  event.preventDefault();
-  const name=habitName.value.trim();
-  const schedule=habitSchedule.value;
-
-  if(!name){alert("Add a habit name first.");return}
-  if(schedule==="custom"&&selectedCustomDays.length===0){alert("Choose at least one custom day.");return}
-
-  const habits=loadHabits();
-
-  if(editingHabitId){
-    const index=habits.findIndex(habit=>habit.id===editingHabitId);
-    if(index>=0){
-      habits[index]={
-        ...habits[index],
-        name,
-        schedule,
-        days:schedule==="custom"?[...selectedCustomDays].sort():[]
-      };
-    }
-  }else{
-    habits.push({
-      id:makeId(name),
-      name,
-      schedule,
-      days:schedule==="custom"?[...selectedCustomDays].sort():[]
-    });
-  }
-
-  saveHabits(habits);
-  resetFormMode();
-  render();
-}
-
+function makeId(name){const slug=name.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");return `${slug||"habit"}-${Date.now()}`}
+function isHabitDue(habit,date){const day=date.getDay();if(habit.schedule==="daily")return true;if(habit.schedule==="weekdays")return day>=1&&day<=5;if(habit.schedule==="weekends")return day===0||day===6;if(habit.schedule==="custom")return habit.days.includes(day);return true}
+function habitsDueOn(date){return loadHabits().filter(h=>isHabitDue(h,date))}
+function isDone(dateKey,habitId){return Boolean(loadCompletions()[dateKey]?.[habitId])}
+function toggleDone(dateKey,habitId){const c=loadCompletions();c[dateKey]=c[dateKey]||{};c[dateKey][habitId]=!c[dateKey][habitId];if(!c[dateKey][habitId])delete c[dateKey][habitId];saveCompletions(c);render()}
+function resetToday(){const c=loadCompletions();delete c[getTodayKey()];saveCompletions(c);render()}
+function deleteHabit(habitId){saveHabits(loadHabits().filter(h=>h.id!==habitId));const c=loadCompletions();Object.keys(c).forEach(k=>{if(c[k])delete c[k][habitId]});saveCompletions(c);if(editingHabitId===habitId)resetFormMode();render()}
+function getDailyProgress(date){const key=getLocalDateKey(date),due=habitsDueOn(date),total=due.length,completed=due.filter(h=>isDone(key,h.id)).length;return{completed,total,percent:total===0?100:Math.round(completed/total*100)}}
+function getOverallCurrentStreak(){const t=getDailyProgress(new Date());let offset=(t.total>0&&t.completed<t.total)?-1:0,streak=0;for(;offset>-365;offset--){const p=getDailyProgress(dateFromOffset(offset));if(p.total===0)continue;if(p.completed===p.total)streak++;else break}return streak}
+function getHabitCurrentStreak(habit){let offset=(isHabitDue(habit,new Date())&&!isDone(getTodayKey(),habit.id))?-1:0,streak=0;for(;offset>-365;offset--){const d=dateFromOffset(offset),key=getLocalDateKey(d);if(!isHabitDue(habit,d))continue;if(isDone(key,habit.id))streak++;else break}return streak}
+function getHabitLongestStreak(habit,daysBack=365){let best=0,current=0;for(let o=-daysBack+1;o<=0;o++){const d=dateFromOffset(o),key=getLocalDateKey(d);if(!isHabitDue(habit,d))continue;if(isDone(key,habit.id)){current++;best=Math.max(best,current)}else current=0}return best}
+function getHabitWindowStats(habit,daysBack){let due=0,completed=0;for(let o=-daysBack+1;o<=0;o++){const d=dateFromOffset(o),key=getLocalDateKey(d);if(!isHabitDue(habit,d))continue;due++;if(isDone(key,habit.id))completed++}return{completed,due,percent:due===0?0:Math.round(completed/due*100)}}
+function getHabitTotalCompleted(habit){const c=loadCompletions();return Object.keys(c).filter(k=>c[k]?.[habit.id]).length}
+function getWeekCount(){let completed=0,daysWithHabits=0;for(let o=0;o>-7;o--){const p=getDailyProgress(dateFromOffset(o));if(p.total===0)continue;daysWithHabits++;if(p.completed===p.total)completed++}return{completed,daysWithHabits}}
+function scheduleLabel(h){if(h.schedule==="daily")return"Every day";if(h.schedule==="weekdays")return"Weekdays";if(h.schedule==="weekends")return"Weekends";const labels=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];return h.days.map(d=>labels[d]).join(", ")||"Custom"}
+function getHabitStats(h){const last7=getHabitWindowStats(h,7),last30=getHabitWindowStats(h,30);return{id:h.id,name:h.name,schedule:scheduleLabel(h),currentStreak:getHabitCurrentStreak(h),longestStreak:getHabitLongestStreak(h),last7Days:last7,last30Days:last30,totalCompleted:getHabitTotalCompleted(h)}}
+function renderTodayHabits(){todayHabits.innerHTML="";const key=getTodayKey(),due=habitsDueOn(new Date());emptyTodayText.classList.toggle("hidden",due.length>0);due.forEach(h=>{const b=document.createElement("button"),done=isDone(key,h.id);b.className=`habit-button ${done?"done":""}`;b.type="button";b.innerHTML=`<span class="checkbox" aria-hidden="true"></span><span><strong>${h.name}</strong><small>Tap when completed</small></span>`;b.addEventListener("click",()=>toggleDone(key,h.id));todayHabits.appendChild(b)})}
+function renderRecentDays(){recentDays.innerHTML="";for(let o=-6;o<=0;o++){const d=dateFromOffset(o),p=getDailyProgress(d),el=document.createElement("div");el.className=`day-pill ${p.total>0&&p.completed===p.total?"done":""}`;el.textContent=d.toLocaleDateString(undefined,{weekday:"short"});recentDays.appendChild(el)}}
+function renderAllHabits(){allHabits.innerHTML="";const habits=loadHabits();if(habits.length===0){allHabits.innerHTML=`<p class="empty-text">No habits yet. Add one above.</p>`;return}habits.forEach(h=>{const row=document.createElement("div");row.className="habit-row";row.innerHTML=`<div><strong>${h.name}</strong><small>${scheduleLabel(h)}</small></div><div class="habit-actions"><button class="edit-btn" type="button">Edit</button><button class="danger-btn" type="button">Delete</button></div>`;row.querySelector(".edit-btn").addEventListener("click",()=>startEditHabit(h.id));row.querySelector(".danger-btn").addEventListener("click",()=>{if(confirm(`Delete "${h.name}"?`))deleteHabit(h.id)});allHabits.appendChild(row)})}
+function renderHabitStats(){habitStats.innerHTML="";const habits=loadHabits();if(habits.length===0){habitStats.innerHTML=`<p class="empty-text">No habit stats yet.</p>`;return}habits.forEach(h=>{const s=getHabitStats(h),card=document.createElement("div");card.className="habit-stat-card";card.innerHTML=`<strong>${s.name}</strong><small>${s.schedule}</small><div class="metric-row"><div class="metric"><b>${s.currentStreak}</b><span>Current</span></div><div class="metric"><b>${s.longestStreak}</b><span>Longest</span></div><div class="metric"><b>${s.last30Days.percent}%</b><span>30 Days</span></div><div class="metric"><b>${s.last7Days.completed}/${s.last7Days.due}</b><span>7 Days</span></div><div class="metric"><b>${s.last30Days.completed}/${s.last30Days.due}</b><span>30 Days</span></div><div class="metric"><b>${s.totalCompleted}</b><span>Total</span></div></div>`;habitStats.appendChild(card)})}
+function render(){const p=getDailyProgress(new Date());renderTodayHabits();progressText.textContent=`${p.completed}/${p.total}`;progressPercent.textContent=`${p.percent}%`;document.documentElement.style.setProperty("--progress",p.percent);const streak=getOverallCurrentStreak();streakText.textContent=`${streak} ${streak===1?"day":"days"}`;const week=getWeekCount();weekText.textContent=`${week.completed}/${week.daysWithHabits||7}`;renderRecentDays();renderAllHabits();renderHabitStats()}
+function setSelectedCustomDays(days){selectedCustomDays=[...days];customDays.querySelectorAll("button").forEach(b=>b.classList.toggle("selected",selectedCustomDays.includes(Number(b.dataset.day))))}
+function resetFormMode(){editingHabitId=null;habitName.value="";habitSchedule.value="daily";setSelectedCustomDays([]);customDays.classList.add("hidden");formModeLabel.textContent="Manage Habits";formTitle.textContent="Add Habit";saveHabitBtn.textContent="Add Habit";cancelEditBtn.classList.add("hidden")}
+function startEditHabit(id){const h=loadHabits().find(x=>x.id===id);if(!h)return;editingHabitId=id;habitName.value=h.name;habitSchedule.value=h.schedule;setSelectedCustomDays(Array.isArray(h.days)?h.days:[]);customDays.classList.toggle("hidden",h.schedule!=="custom");formModeLabel.textContent="Editing Habit";formTitle.textContent="Edit Habit";saveHabitBtn.textContent="Save Changes";cancelEditBtn.classList.remove("hidden");document.querySelector(".manage-card").scrollIntoView({behavior:"smooth",block:"start"})}
+function saveHabitFromForm(e){e.preventDefault();const name=habitName.value.trim(),schedule=habitSchedule.value;if(!name){alert("Add a habit name first.");return}if(schedule==="custom"&&selectedCustomDays.length===0){alert("Choose at least one custom day.");return}const habits=loadHabits();if(editingHabitId){const i=habits.findIndex(h=>h.id===editingHabitId);if(i>=0)habits[i]={...habits[i],name,schedule,days:schedule==="custom"?[...selectedCustomDays].sort():[]}}else habits.push({id:makeId(name),name,schedule,days:schedule==="custom"?[...selectedCustomDays].sort():[]});saveHabits(habits);resetFormMode();render()}
 function openSettings(){settingsPanel.classList.remove("hidden");document.body.style.overflow="hidden"}
 function closeSettings(){settingsPanel.classList.add("hidden");document.body.style.overflow=""}
-
-function exportHabits(){
-  const backup={version:1,exportedAt:new Date().toISOString(),habits:loadHabits()};
-  backupBox.value=JSON.stringify(backup,null,2);
-  backupBox.focus();
-  backupBox.select();
-  if(navigator.clipboard) navigator.clipboard.writeText(backupBox.value).catch(()=>{});
-  backupMessage.textContent="Habit backup created. Copy this text into Apple Notes.";
-}
-
-function importHabits(){
-  const text=backupBox.value.trim();
-  if(!text){backupMessage.textContent="Paste your habit backup first.";return}
-  const parsed=safeParse(text,null);
-  const habits=Array.isArray(parsed)?parsed:parsed?.habits;
-  if(!Array.isArray(habits)||habits.length===0){backupMessage.textContent="That backup does not look valid.";return}
-  const cleaned=habits.filter(habit=>habit.name&&habit.schedule).map(habit=>({
-    id:habit.id||makeId(habit.name),
-    name:String(habit.name),
-    schedule:habit.schedule,
-    days:Array.isArray(habit.days)?habit.days:[]
-  }));
-  if(cleaned.length===0){backupMessage.textContent="No valid habits found in that backup.";return}
-  saveHabits(cleaned);
-  resetFormMode();
-  backupMessage.textContent="Habits imported.";
-  render();
-}
-
-habitSchedule.addEventListener("change",()=>customDays.classList.toggle("hidden",habitSchedule.value!=="custom"));
-
-customDays.querySelectorAll("button").forEach(button=>{
-  button.addEventListener("click",()=>{
-    const day=Number(button.dataset.day);
-    if(selectedCustomDays.includes(day)){
-      selectedCustomDays=selectedCustomDays.filter(savedDay=>savedDay!==day);
-    }else{
-      selectedCustomDays.push(day);
-    }
-    button.classList.toggle("selected",selectedCustomDays.includes(day));
-  });
-});
-
-habitForm.addEventListener("submit",saveHabitFromForm);
-cancelEditBtn.addEventListener("click",resetFormMode);
-resetTodayBtn.addEventListener("click",resetToday);
-openSettingsBtn.addEventListener("click",openSettings);
-closeSettingsBtn.addEventListener("click",closeSettings);
-exportBtn.addEventListener("click",exportHabits);
-importBtn.addEventListener("click",importHabits);
-
-if("serviceWorker" in navigator){navigator.serviceWorker.register("service-worker.js")}
-
-migrateOldDataOnce();
-formatDateLabel();
-render();
+function getExportPayload(){const habits=loadHabits();return{version:2,exportedAt:new Date().toISOString(),habits,stats:{overall:{currentStreak:getOverallCurrentStreak(),thisWeek:getWeekCount(),today:getDailyProgress(new Date())},byHabit:habits.map(getHabitStats)},completions:loadCompletions()}}
+function exportHabits(){backupBox.value=JSON.stringify(getExportPayload(),null,2);backupBox.focus();backupBox.select();if(navigator.clipboard)navigator.clipboard.writeText(backupBox.value).catch(()=>{});backupMessage.textContent="Backup created with habits, stats, and completion history. Copy it into Apple Notes."}
+function importHabits(){const text=backupBox.value.trim();if(!text){backupMessage.textContent="Paste your backup first.";return}const parsed=safeParse(text,null),habits=Array.isArray(parsed)?parsed:parsed?.habits;if(!Array.isArray(habits)||habits.length===0){backupMessage.textContent="That backup does not look valid.";return}const cleaned=habits.filter(h=>h.name&&h.schedule).map(h=>({id:h.id||makeId(h.name),name:String(h.name),schedule:h.schedule,days:Array.isArray(h.days)?h.days:[]}));if(cleaned.length===0){backupMessage.textContent="No valid habits found in that backup.";return}saveHabits(cleaned);if(parsed?.completions&&typeof parsed.completions==="object")saveCompletions(parsed.completions);resetFormMode();backupMessage.textContent="Habits imported.";render()}
+habitSchedule.addEventListener("change",()=>customDays.classList.toggle("hidden",habitSchedule.value!=="custom"));customDays.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{const day=Number(b.dataset.day);selectedCustomDays=selectedCustomDays.includes(day)?selectedCustomDays.filter(d=>d!==day):[...selectedCustomDays,day];b.classList.toggle("selected",selectedCustomDays.includes(day))}));habitForm.addEventListener("submit",saveHabitFromForm);cancelEditBtn.addEventListener("click",resetFormMode);resetTodayBtn.addEventListener("click",resetToday);openSettingsBtn.addEventListener("click",openSettings);closeSettingsBtn.addEventListener("click",closeSettings);exportBtn.addEventListener("click",exportHabits);importBtn.addEventListener("click",importHabits);if("serviceWorker"in navigator)navigator.serviceWorker.register("service-worker.js");migrateOldDataOnce();formatDateLabel();render();
