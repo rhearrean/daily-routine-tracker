@@ -70,8 +70,8 @@
       </div>
 
       <section class="card manage-card">
-        <p class="label">Manage Habits</p>
-        <h2>Add Habit</h2>
+        <p class="label" id="formModeLabel">Manage Habits</p>
+        <h2 id="formTitle">Add Habit</h2>
 
         <form id="habitForm" class="habit-form">
           <label>
@@ -99,7 +99,8 @@
             <button type="button" data-day="0">Sun</button>
           </div>
 
-          <button class="primary-btn" type="submit">Add Habit</button>
+          <button id="saveHabitBtn" class="primary-btn" type="submit">Add Habit</button>
+          <button id="cancelEditBtn" class="small-btn hidden" type="button">Cancel Edit</button>
         </form>
       </section>
 
