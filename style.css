@@ -17,3 +17,14 @@
 .app > .hero.top-bar .icon-btn{
   box-shadow: 0 10px 24px rgba(0,0,0,.22);
 }
+
+
+/* v10.6 — Anytime pinned to top */
+.time-block.anytime-block{
+  border-color: rgba(147,197,253,.28);
+  background: rgba(31,41,55,.82);
+}
+
+.time-block.anytime-block .time-block-header small{
+  color: #93c5fd;
+}
