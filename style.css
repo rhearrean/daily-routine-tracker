@@ -28,3 +28,40 @@
 .time-block.anytime-block .time-block-header small{
   color: #93c5fd;
 }
+
+
+/* v10.7 — Current block emphasis and completed block dimming */
+.time-block.current-block{
+  border-color: rgba(134,239,172,.58);
+  background: linear-gradient(180deg, rgba(22,101,52,.28), rgba(31,41,55,.82));
+  box-shadow: 0 0 0 1px rgba(134,239,172,.12), 0 16px 34px rgba(0,0,0,.18);
+}
+
+.time-block.current-block .time-block-header h3{
+  color: var(--text);
+}
+
+.current-block-label{
+  display:inline-block;
+  margin-left:6px;
+  padding:2px 7px;
+  border-radius:999px;
+  color:#052e16;
+  background:var(--accent);
+  font-size:.68rem;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.time-block.completed-block{
+  opacity:.72;
+}
+
+.time-block.completed-block.current-block{
+  opacity:1;
+}
+
+.time-block.anytime-block.completed-block{
+  opacity:.82;
+}

@@ -1,4 +1,4 @@
-const APP_META={version:"10.6",build:"2026.06.28.3",schemaVersion:6,releaseDate:"June 28, 2026",releaseNotes:["Pinned Anytime habits to the top of the Today screen.","Moved Anytime above the progress card for better visibility.","Timed blocks now appear below progress in chronological order."]};
+const APP_META={version:"10.7",build:"2026.06.28.4",schemaVersion:6,releaseDate:"June 28, 2026",releaseNotes:["Highlighted the current time block.","Dimmed completed time blocks slightly.","Kept Anytime pinned and visually separate from timed blocks."]};
 const HABITS_KEY="dailyRoutineHabits.v10_1",COMPLETIONS_KEY="dailyRoutineCompletions.v10_1",BLOCKS_KEY="dailyRoutineTimeBlocks.v10_1",SETTINGS_KEY="dailyRoutineSettings.v10_3";
 const OLD_KEYS=[["dailyRoutineHabits.v10","dailyRoutineCompletions.v10","dailyRoutineTimeBlocks.v10"],["dailyRoutineHabits.v9","dailyRoutineCompletions.v9",null],["dailyRoutineHabits.v8","dailyRoutineCompletions.v8",null],["dailyRoutineHabits.v7","dailyRoutineCompletions.v7",null],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6",null],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5",null],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4",null],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3",null],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2",null]];
 const DEFAULT_BLOCKS=[{id:"early",label:"🌅 Early Morning",start:"05:00",end:"07:59"},{id:"morning",label:"☀️ Morning",start:"08:00",end:"11:59"},{id:"afternoon",label:"🌤 Afternoon",start:"12:00",end:"15:59"},{id:"late-afternoon",label:"🌇 Late Afternoon",start:"16:00",end:"19:59"},{id:"evening",label:"🌙 Evening",start:"20:00",end:"23:59"},{id:"anytime",label:"Anytime",start:"",end:""}],defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[],occurrences:[{id:"read-book-evening",block:"evening"}],cutoff:"",allowLate:true}];
@@ -12,6 +12,32 @@ function orderedTodayBlocks(){
   const anytime=blocks.filter(b=>b.id==="anytime");
   const timed=blocks.filter(b=>b.id!=="anytime");
   return [...anytime,...timed];
+}
+
+
+function currentMinutes(){
+  const d=new Date();
+  return d.getHours()*60+d.getMinutes();
+}
+function blockMinutes(value){
+  if(!value)return null;
+  const parts=value.split(":").map(Number);
+  return parts[0]*60+parts[1];
+}
+function isCurrentTimedBlock(block){
+  if(block.id==="anytime"||!block.start||!block.end)return false;
+  const now=currentMinutes();
+  const start=blockMinutes(block.start);
+  const end=blockMinutes(block.end);
+  if(start===null||end===null)return false;
+  return now>=start&&now<=end;
+}
+function getBlockVisualClass(block,completed,eligible){
+  const classes=[];
+  if(block.id==="anytime")classes.push("anytime-block");
+  if(isCurrentTimedBlock(block))classes.push("current-block");
+  if(block.id!=="anytime"&&eligible>0&&completed>=eligible)classes.push("completed-block");
+  return classes.join(" ");
 }
 
 function blockById(id){return loadBlocks().find(b=>b.id===id)||DEFAULT_BLOCKS.find(b=>b.id==="anytime")}function blockLabel(id){return blockById(id)?.label||"Anytime"}
