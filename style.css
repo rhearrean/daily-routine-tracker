@@ -94,21 +94,12 @@
 }
 
 
-/* v10.7.3 cosmetic cleanup */
-.progress-card{
+/* v10.7.3.1 cosmetic hotfix */
+.app > .progress-card{
   display:none!important;
 }
 
-.collapsed-summary,
-.block-summary{
+.version-small:empty,
+.habit-button small:empty{
   display:none!important;
-}
-
-.habit-button small:empty,
-.version-small:empty{
-  display:none!important;
-}
-
-.app > .card:first-of-type{
-  margin-top:10px;
 }
