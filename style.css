@@ -92,3 +92,23 @@
 .habit-button small:empty{
   display:none;
 }
+
+
+/* v10.7.3 cosmetic cleanup */
+.progress-card{
+  display:none!important;
+}
+
+.collapsed-summary,
+.block-summary{
+  display:none!important;
+}
+
+.habit-button small:empty,
+.version-small:empty{
+  display:none!important;
+}
+
+.app > .card:first-of-type{
+  margin-top:10px;
+}
