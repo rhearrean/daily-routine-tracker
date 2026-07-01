@@ -103,30 +103,3 @@
 .habit-button small:empty{
   display:none!important;
 }
-
-
-/* v10.7.4 UI cleanup */
-.collapsed-summary,
-.block-summary{
-  display:none!important;
-}
-
-.time-block.current-block{
-  border-color:rgba(134,239,172,.78)!important;
-  background:linear-gradient(180deg,rgba(22,101,52,.28),rgba(31,41,55,.88))!important;
-  box-shadow:0 0 0 1px rgba(134,239,172,.18),0 14px 30px rgba(0,0,0,.18)!important;
-}
-
-.current-block-label{
-  display:inline-block;
-  margin-left:7px;
-  padding:2px 7px;
-  border-radius:999px;
-  color:#052e16;
-  background:#86efac;
-  font-size:.66rem;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.04em;
-  vertical-align:middle;
-}
