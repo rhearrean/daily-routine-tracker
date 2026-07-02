@@ -104,104 +104,23 @@
   display:none!important;
 }
 
-/* v10.8 Today Focus */
-#openStatsBtn{display:none!important;}
 
-
-/* v10.8 Today Focus layout */
-.stats-grid,
-#recentDays,
-#habitStats{
+/* v10.8.1 Today Focus hotfix: safe styling only */
+#openStatsBtn{
   display:none!important;
 }
 
-.time-block.compact-block{
-  padding:12px 14px;
-  cursor:pointer;
+.app > .progress-card{
+  display:none!important;
 }
 
-.time-block.compact-block .time-block-header{
-  margin-bottom:0;
-  align-items:center;
+/* Hide known duplicate summary classes only if present */
+.collapsed-summary,
+.block-summary{
+  display:none!important;
 }
 
-.time-block.compact-block.done-block h3,
-.time-block.compact-block.done-block .block-progress{
-  color:rgba(249,250,251,.48);
-  font-weight:700;
-}
-
-.compact-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-}
-
-.block-title-line{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  min-width:0;
-}
-
-.block-title-line h3{
-  margin:0;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.compact-block .block-title-line h3{
-  font-size:1.02rem;
-}
-
-.block-progress{
-  flex:0 0 auto;
-  white-space:nowrap;
-}
-
-.block-time{
-  display:block;
-  color:var(--muted);
-  font-weight:700;
-  margin:2px 0 10px;
-}
-
-.current-block{
-  border-color:rgba(134,239,172,.45)!important;
-}
-
-.current-block .block-title-line h3{
-  font-weight:900;
-  color:#f9fafb;
-}
-
-.current-badge{
-  display:inline-flex;
-  align-items:center;
-  gap:5px;
-  color:#86efac;
-  background:rgba(134,239,172,.10);
-  border:1px solid rgba(134,239,172,.22);
-  padding:3px 8px;
-  border-radius:999px;
-  font-size:.72rem;
-  font-weight:900;
-  letter-spacing:.02em;
-  white-space:nowrap;
-}
-
-.current-dot{
-  width:7px;
-  height:7px;
-  border-radius:999px;
-  background:#22c55e;
-  box-shadow:0 0 0 3px rgba(34,197,94,.12);
-}
-
-@media(max-width:380px){
-  .compact-block .block-title-line h3{font-size:.95rem;}
-  .current-badge{font-size:.68rem;padding:3px 7px;}
-  .block-progress{font-size:.82rem;}
+.version-small:empty,
+.habit-button small:empty{
+  display:none!important;
 }
