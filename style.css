@@ -103,38 +103,3 @@
 .habit-button small:empty{
   display:none!important;
 }
-
-
-/* v10.8.1 Today Focus hotfix: safe styling only */
-#openStatsBtn{
-  display:none!important;
-}
-
-.app > .progress-card{
-  display:none!important;
-}
-
-/* Hide known duplicate summary classes only if present */
-.collapsed-summary,
-.block-summary{
-  display:none!important;
-}
-
-.version-small:empty,
-.habit-button small:empty{
-  display:none!important;
-}
-
-/* v10.8.2 revised clean */
-#openStatsBtn{
-  display:none!important;
-}
-
-.app > .progress-card{
-  display:none!important;
-}
-
-.version-small:empty,
-.habit-button small:empty{
-  display:none!important;
-}
