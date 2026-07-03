@@ -111,7 +111,7 @@
 }
 
 
-/* v10.7.3.7 — Time Block Settings stacked mobile layout */
+/* v10.7.3.8 — iPhone time input inset fix */
 @media(max-width:640px){
   .block-setting-row{
     display:grid!important;
@@ -120,14 +120,12 @@
     align-items:stretch!important;
     width:100%!important;
     max-width:100%!important;
-    overflow:visible!important;
+    overflow:hidden!important;
   }
 
   .block-setting-row > strong{
     grid-column:1 / -1!important;
     width:100%!important;
-    min-width:0!important;
-    margin-bottom:2px;
   }
 
   .block-setting-row > label{
@@ -137,15 +135,17 @@
     width:100%!important;
     max-width:100%!important;
     min-width:0!important;
+    overflow:visible!important;
   }
 
-  .block-setting-row input[type="time"],
-  .block-setting-row input[type="text"]{
+  .block-setting-row input[type="time"]{
     display:block!important;
-    width:100%!important;
-    max-width:100%!important;
+    width:calc(100% - 36px)!important;
+    max-width:calc(100% - 36px)!important;
     min-width:0!important;
+    margin-right:36px!important;
     box-sizing:border-box!important;
     border-radius:16px!important;
+    text-align:center!important;
   }
 }
