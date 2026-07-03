@@ -1,4 +1,4 @@
-const APP_META={version:"10.7.8",build:"2026.07.03.backup-buttons",schemaVersion:6,releaseDate:"June 28, 2026",releaseNotes:["Split backup import actions into clear buttons.","Import JSON File now always opens the file picker.","Import from Text remains available for manual copy/paste backups."]};
+const APP_META={version:"10.7.9",build:"2026.07.03.dynamic-file-input",schemaVersion:6,releaseDate:"June 28, 2026",releaseNotes:["Fixed Import JSON File by creating the file picker input dynamically in app.js.","No index.html change required.","Copy/paste import remains available as fallback."]};
 const HABITS_KEY="dailyRoutineHabits.v10_1",COMPLETIONS_KEY="dailyRoutineCompletions.v10_1",BLOCKS_KEY="dailyRoutineTimeBlocks.v10_1",SETTINGS_KEY="dailyRoutineSettings.v10_3";
 const OLD_KEYS=[["dailyRoutineHabits.v10","dailyRoutineCompletions.v10","dailyRoutineTimeBlocks.v10"],["dailyRoutineHabits.v9","dailyRoutineCompletions.v9",null],["dailyRoutineHabits.v8","dailyRoutineCompletions.v8",null],["dailyRoutineHabits.v7","dailyRoutineCompletions.v7",null],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6",null],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5",null],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4",null],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3",null],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2",null]];
 const DEFAULT_BLOCKS=[{id:"early",label:"🌅 Early Morning",start:"05:00",end:"07:59"},{id:"morning",label:"☀️ Morning",start:"08:00",end:"11:59"},{id:"afternoon",label:"🌤 Afternoon",start:"12:00",end:"15:59"},{id:"late-afternoon",label:"🌇 Late Afternoon",start:"16:00",end:"19:59"},{id:"evening",label:"🌙 Evening",start:"20:00",end:"23:59"},{id:"anytime",label:"Anytime",start:"",end:""}],defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[],occurrences:[{id:"read-book-evening",block:"evening"}],cutoff:"",allowLate:true}];
@@ -98,17 +98,27 @@ function importBackupPayload(parsed){
   render();
   if(E.backupMessage)E.backupMessage.textContent="Backup file imported.";
 }
-function chooseBackupFile(){
-  if(!E.backupFileInput){
-    if(E.backupMessage)E.backupMessage.textContent="File import is not available. Use copy/paste import.";
-    return;
+
+function ensureBackupFileInput(){
+  let input=document.getElementById("backupFileInput");
+  if(!input){
+    input=document.createElement("input");
+    input.id="backupFileInput";
+    input.type="file";
+    input.accept="application/json,.json";
+    input.className="hidden";
+    input.style.display="none";
+    document.body.appendChild(input);
   }
-  E.backupFileInput.value="";
-  E.backupFileInput.click();
+  if(E)E.backupFileInput=input;
+  return input;
 }
+
+function chooseBackupFile(){const input=ensureBackupFileInput();input.value="";input.click();}
 
 
 function setupBackupActionButtons(){
+  ensureBackupFileInput();
   if(!E.importBtn||document.getElementById("importFileBtn"))return;
 
   const importTextBtn=document.createElement("button");
@@ -187,6 +197,7 @@ E.habitSchedule.addEventListener("change",()=>E.customDays.classList.toggle("hid
 if(E.exportBtn)E.exportBtn.addEventListener("click",downloadBackupFile);
 
 if(E.importBtn)E.importBtn.addEventListener("click",(e)=>{if(E.backupText&&!E.backupText.value.trim()){e.stopImmediatePropagation();chooseBackupFile();}},true);
+ensureBackupFileInput();
 if(E.backupFileInput){
   E.backupFileInput.addEventListener("change",()=>{
     const file=E.backupFileInput.files&&E.backupFileInput.files[0];
