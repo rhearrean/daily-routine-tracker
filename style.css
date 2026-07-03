@@ -193,7 +193,7 @@ textarea{min-height:170px;margin-top:14px;resize:vertical}
 }
 
 /* v10.7.3.2 — hide Stats button only */
-#openStatsBtn{
+openStatsBtn{
   display:none!important;
 }
 
