@@ -109,3 +109,42 @@
 #openStatsBtn{
   display:none!important;
 }
+
+
+/* v10.7.3.3 — Settings time block spacing only */
+.time-block-setting,
+.time-block-settings-row,
+.block-setting-row{
+  gap:12px;
+}
+
+.time-block-setting input[type="time"],
+.time-block-settings-row input[type="time"],
+.block-setting-row input[type="time"]{
+  min-width:0;
+  max-width:100%;
+}
+
+@media(max-width:520px){
+  .time-block-setting,
+  .time-block-settings-row,
+  .block-setting-row{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+  }
+
+  .time-block-setting label,
+  .time-block-settings-row label,
+  .block-setting-row label{
+    width:100%!important;
+    min-width:0!important;
+  }
+
+  .time-block-setting input,
+  .time-block-settings-row input,
+  .block-setting-row input{
+    width:100%!important;
+    box-sizing:border-box!important;
+  }
+}
