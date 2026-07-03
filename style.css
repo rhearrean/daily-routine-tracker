@@ -149,3 +149,19 @@
     text-align:center!important;
   }
 }
+
+
+/* v10.7.3.9 — iPhone target/cutoff time input inset fix */
+@media(max-width:640px){
+  .habit-editor-card input[type="time"],
+  .habit-form input[type="time"]{
+    display:block!important;
+    width:calc(100% - 36px)!important;
+    max-width:calc(100% - 36px)!important;
+    min-width:0!important;
+    margin-right:36px!important;
+    box-sizing:border-box!important;
+    border-radius:16px!important;
+    text-align:center!important;
+  }
+}
