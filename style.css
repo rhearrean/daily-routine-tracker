@@ -192,3 +192,12 @@
   background:#22c55e;
   box-shadow:0 0 0 3px rgba(34,197,94,.12);
 }
+
+
+/* v10.7.5 — file backup restore */
+.file-backup-note{
+  margin-top:10px;
+  color:var(--muted);
+  font-size:.82rem;
+  font-weight:700;
+}
