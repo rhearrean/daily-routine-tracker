@@ -103,3 +103,9 @@
 .habit-button small:empty{
   display:none!important;
 }
+
+
+/* v10.7.3.2 — hide Stats button only */
+#openStatsBtn{
+  display:none!important;
+}
