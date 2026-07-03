@@ -194,10 +194,8 @@
 }
 
 
-/* v10.7.5 — file backup restore */
-.file-backup-note{
-  margin-top:10px;
-  color:var(--muted);
-  font-size:.82rem;
-  font-weight:700;
+/* v10.7.8 — backup action button split */
+#importFileBtn,
+#importTextBtn{
+  margin-top:8px;
 }
