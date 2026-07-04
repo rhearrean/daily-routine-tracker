@@ -201,34 +201,7 @@
 }
 
 
-/* v10.8.0 — Current time block badge */
-.current-badge{
-  display:inline-flex;
-  align-items:center;
-  gap:5px;
-  margin-left:7px;
-  color:#86efac;
-  background:rgba(134,239,172,.10);
-  border:1px solid rgba(134,239,172,.22);
-  padding:2px 7px;
-  border-radius:999px;
-  font-size:.68rem;
-  font-weight:900;
-  letter-spacing:.02em;
-  white-space:nowrap;
-  vertical-align:middle;
-}
-
-.current-dot{
-  width:7px;
-  height:7px;
-  border-radius:999px;
-  background:#22c55e;
-  box-shadow:0 0 0 3px rgba(34,197,94,.12);
-}
-
-
-/* v10.8.1 — Current badge render fix */
+/* v10.8.2 — Current badge direct template patch */
 .current-badge{
   display:inline-flex!important;
   align-items:center;
@@ -255,5 +228,5 @@
 }
 
 .time-block.current-block{
-  border-color:rgba(134,239,172,.35);
+  border-color:rgba(134,239,172,.38);
 }
