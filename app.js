@@ -1,4 +1,4 @@
-const APP_META={version:"10.8.0",build:"2026.07.04.current-badge",schemaVersion:6,releaseDate:"June 28, 2026",releaseNotes:["Added a green Current badge to the active time block.","Current badge is read-only and does not affect storage, import/export, habits, or history."]};
+const APP_META={version:"10.8.1",build:"2026.07.04.current-badge-render-fix",schemaVersion:6,releaseDate:"June 28, 2026",releaseNotes:["Fixed Current badge rendering by applying it after time blocks render.","No storage, import/export, habits, or history changes."]};
 const HABITS_KEY="dailyRoutineHabits.v10_1",COMPLETIONS_KEY="dailyRoutineCompletions.v10_1",BLOCKS_KEY="dailyRoutineTimeBlocks.v10_1",SETTINGS_KEY="dailyRoutineSettings.v10_3";
 const OLD_KEYS=[["dailyRoutineHabits.v10","dailyRoutineCompletions.v10","dailyRoutineTimeBlocks.v10"],["dailyRoutineHabits.v9","dailyRoutineCompletions.v9",null],["dailyRoutineHabits.v8","dailyRoutineCompletions.v8",null],["dailyRoutineHabits.v7","dailyRoutineCompletions.v7",null],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6",null],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5",null],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4",null],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3",null],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2",null]];
 const DEFAULT_BLOCKS=[{id:"early",label:"🌅 Early Morning",start:"05:00",end:"07:59"},{id:"morning",label:"☀️ Morning",start:"08:00",end:"11:59"},{id:"afternoon",label:"🌤 Afternoon",start:"12:00",end:"15:59"},{id:"late-afternoon",label:"🌇 Late Afternoon",start:"16:00",end:"19:59"},{id:"evening",label:"🌙 Evening",start:"20:00",end:"23:59"},{id:"anytime",label:"Anytime",start:"",end:""}],defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[],occurrences:[{id:"read-book-evening",block:"evening"}],cutoff:"",allowLate:true}];
@@ -153,7 +153,32 @@ function setupBackupActionButtons(){
   });
 }
 
-function render(){const p=getDailyProgress(new Date());renderTimeBlocks();E.progressText.textContent=`${p.completed}/${p.eligible}${p.skipped?` (${p.skipped} skipped)`:""}`;E.progressPercent.textContent=`${p.percent}%`;document.documentElement.style.setProperty("--progress",p.percent);const streak=getOverallCurrentStreak();E.streakText.textContent=`${streak} ${streak===1?"day":"days"}`;const week=getWeekCount();E.weekText.textContent=`${week.completed}/${week.daysWithHabits||7}`;renderRecentDays();renderAllHabits();renderHabitStats();renderBlockSettings();renderOccurrenceButtons();renderDisplaySettings();renderAppInfo()}
+
+function applyCurrentBadge(){
+  try{
+    const current=loadBlocks().find(block=>isCurrentTimedBlock(block));
+    if(!current)return;
+    document.querySelectorAll(".current-badge").forEach(el=>el.remove());
+    const blocks=[...document.querySelectorAll(".time-block")];
+    const target=blocks.find(card=>{
+      const h3=card.querySelector(".time-block-header h3");
+      return h3&&h3.textContent.trim().startsWith(current.label.trim());
+    });
+    if(!target)return;
+    target.classList.add("current-block");
+    const small=target.querySelector(".time-block-header small");
+    const h3=target.querySelector(".time-block-header h3");
+    const badge=document.createElement("span");
+    badge.className="current-badge";
+    badge.innerHTML='<span class="current-dot"></span>Current';
+    if(small)small.appendChild(badge);
+    else if(h3)h3.appendChild(badge);
+  }catch(e){
+    console.warn("Current badge skipped",e);
+  }
+}
+
+function render(){const p=getDailyProgress(new Date());renderTimeBlocks();E.progressText.textContent=`${p.completed}/${p.eligible}${p.skipped?` (${p.skipped} skipped)`:""}`;E.progressPercent.textContent=`${p.percent}%`;document.documentElement.style.setProperty("--progress",p.percent);const streak=getOverallCurrentStreak();E.streakText.textContent=`${streak} ${streak===1?"day":"days"}`;const week=getWeekCount();E.weekText.textContent=`${week.completed}/${week.daysWithHabits||7}`;renderRecentDays();renderAllHabits();renderHabitStats();renderBlockSettings();renderOccurrenceButtons();renderDisplaySettings();renderAppInfo();applyCurrentBadge()}
 function setSelectedCustomDays(days){selectedCustomDays=[...days];E.customDays.querySelectorAll("button").forEach(b=>b.classList.toggle("selected",selectedCustomDays.includes(Number(b.dataset.day))))}function setSelectedOccurrenceBlocks(blocks){selectedOccurrenceBlocks=[...blocks];renderOccurrenceButtons()}function resetFormMode(){editingHabitId=null;E.habitName.value="";E.habitSchedule.value="daily";E.habitCutoff.value="";E.habitAllowLate.checked=true;setSelectedCustomDays([]);setSelectedOccurrenceBlocks(["evening"]);E.customDays.classList.add("hidden");E.formModeLabel.textContent="Manage Habits";E.formTitle.textContent="Add Habit";E.saveHabitBtn.textContent="Add Habit";E.cancelEditBtn.classList.add("hidden")}function openHabitEditor(){E.habitEditorSheet.classList.remove("hidden");document.body.style.overflow="hidden"}function closeHabitEditor(){E.habitEditorSheet.classList.add("hidden");document.body.style.overflow=E.settingsPanel.classList.contains("hidden")?"":"hidden"}function openAddHabit(){resetFormMode();openHabitEditor()}function startEditHabit(id){const h=loadHabits().find(x=>x.id===id);if(!h)return;editingHabitId=id;E.habitName.value=h.name;E.habitSchedule.value=h.schedule;E.habitCutoff.value=h.cutoff||"";E.habitAllowLate.checked=h.allowLate!==false;setSelectedCustomDays(Array.isArray(h.days)?h.days:[]);setSelectedOccurrenceBlocks(h.occurrences.map(o=>o.block));E.customDays.classList.toggle("hidden",h.schedule!=="custom");E.formModeLabel.textContent="Editing Habit";E.formTitle.textContent="Edit Habit";E.saveHabitBtn.textContent="Save Changes";E.cancelEditBtn.classList.remove("hidden");openHabitEditor()}function saveHabitFromForm(e){e.preventDefault();const name=E.habitName.value.trim(),schedule=E.habitSchedule.value;if(!name){alert("Add a habit name first.");return}if(schedule==="custom"&&selectedCustomDays.length===0){alert("Choose at least one custom day.");return}if(selectedOccurrenceBlocks.length===0){alert("Choose at least one occurrence block.");return}const habits=loadHabits(),oldHabit=editingHabitId?habits.find(h=>h.id===editingHabitId):null,habitId=editingHabitId||makeId(name),oldByBlock={};if(oldHabit)oldHabit.occurrences.forEach(o=>oldByBlock[o.block]=o.id);const occurrences=sortOccurrences(selectedOccurrenceBlocks.map((block,index)=>({id:oldByBlock[block]||`${habitId}-${block}-${Date.now()}-${index}`,block})));const data={name,schedule,days:schedule==="custom"?[...selectedCustomDays].sort():[],occurrences,cutoff:E.habitCutoff.value,allowLate:E.habitAllowLate.checked};if(editingHabitId){const i=habits.findIndex(h=>h.id===editingHabitId);if(i>=0)habits[i]={...habits[i],...data}}else habits.push({id:habitId,...data});saveHabits(habits);resetFormMode();closeHabitEditor();render()}function saveBlockSettings(){const blocks=loadBlocks();E.blockSettings.querySelectorAll("input").forEach(input=>{const b=blocks.find(x=>x.id===input.dataset.block);if(b)b[input.dataset.field]=input.value});saveBlocks(blocks);E.backupMessage.textContent="Time block settings saved.";render()}function openStats(){E.statsPanel.classList.remove("hidden");document.body.style.overflow="hidden"}function closeStats(){E.statsPanel.classList.add("hidden");document.body.style.overflow=""}function openSettings(){E.settingsPanel.classList.remove("hidden");document.body.style.overflow="hidden"}function closeSettings(){E.settingsPanel.classList.add("hidden");document.body.style.overflow=""}
 function getExportPayload(){const habits=loadHabits(),completions=loadCompletions(),timeBlocks=loadBlocks();return{schemaVersion:APP_META.schemaVersion,appVersion:APP_META.version,build:APP_META.build,exportedAt:new Date().toISOString(),timeBlocks,settings:loadSettings(),habits,completions,stats:{overall:{currentStreak:getOverallCurrentStreak(),thisWeek:getWeekCount(),today:getDailyProgress(new Date())},byHabit:habits.map(getHabitStats)}}}function exportHabits(){E.backupBox.value=JSON.stringify(getExportPayload(),null,2);E.backupBox.focus();E.backupBox.select();if(navigator.clipboard)navigator.clipboard.writeText(E.backupBox.value).catch(()=>{});E.backupMessage.textContent="Backup created with habits, occurrences, completed/skipped history, time blocks, and stats."}
 function normalizeImportedCompletions(rawCompletions){
@@ -216,4 +241,5 @@ if(E.backupFileInput){
   });
 }
 
+setTimeout(applyCurrentBadge,150);
 if("serviceWorker"in navigator)navigator.serviceWorker.register("service-worker.js");migrateOldDataOnce();formatDateLabel();resetFormMode();render();setupBackupActionButtons();
