@@ -230,3 +230,33 @@
 .time-block.current-block{
   border-color:rgba(134,239,172,.38);
 }
+
+
+/* v10.8.3 — Compact completed time blocks */
+.time-block.collapsed.completed-block{
+  padding:12px 14px;
+}
+
+.time-block.collapsed.completed-block .time-block-header{
+  margin-bottom:0;
+  align-items:center;
+}
+
+.time-block.collapsed.completed-block .time-block-header small,
+.time-block.collapsed.completed-block .block-summary{
+  display:none!important;
+}
+
+.time-block.collapsed.completed-block .time-block-header h3{
+  color:rgba(249,250,251,.52);
+  margin:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.time-block.collapsed.completed-block .block-progress{
+  color:rgba(249,250,251,.48);
+  font-weight:900;
+  white-space:nowrap;
+}
