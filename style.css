@@ -260,3 +260,18 @@
   font-weight:900;
   white-space:nowrap;
 }
+
+
+/* v10.8.4 — Smart Time Block Focus */
+.time-block.collapsed:not(.current-block){
+  opacity:.92;
+}
+
+.time-block.collapsed:not(.current-block) .time-block-header{
+  margin-bottom:0;
+}
+
+.time-block.current-block{
+  border-color:rgba(134,239,172,.48);
+  background:linear-gradient(180deg,rgba(22,101,52,.22),rgba(31,41,55,.82));
+}
