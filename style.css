@@ -285,3 +285,38 @@
 .time-block.collapsed.completed-block .time-block-header{
   margin-bottom:0;
 }
+
+
+/* v10.8.6 — Snooze Habit */
+.snooze-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  color:#93c5fd;
+  font-weight:900;
+}
+
+.snoozed-habit{
+  opacity:.82;
+}
+
+.snoozed-habit strong::after{
+  content:" ⏸";
+  color:#93c5fd;
+}
+
+#habitSnoozeUntil{
+  width:100%;
+}
+
+@media(max-width:640px){
+  #habitSnoozeUntil{
+    display:block!important;
+    width:calc(100% - 36px)!important;
+    max-width:calc(100% - 36px)!important;
+    min-width:0!important;
+    margin-right:36px!important;
+    box-sizing:border-box!important;
+    border-radius:16px!important;
+  }
+}
