@@ -363,3 +363,148 @@
     justify-content:flex-end;
   }
 }
+
+
+/* v10.8.8 — Routine Steps */
+.routine-steps-editor{
+  display:grid;
+  gap:10px;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:rgba(255,255,255,.025);
+}
+
+.routine-steps-editor-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.standalone-label{
+  display:block;
+  font-weight:800;
+}
+
+.optional-text{
+  font-weight:500;
+  opacity:.65;
+}
+
+#routineStepsList{
+  display:grid;
+  gap:8px;
+}
+
+.routine-step-editor-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 42px;
+  gap:8px;
+  align-items:center;
+}
+
+.routine-step-editor-row input{
+  width:100%;
+  min-width:0;
+}
+
+.remove-step-btn{
+  width:42px;
+  height:42px;
+  padding:0;
+}
+
+.habit-with-steps{
+  display:grid;
+  gap:0;
+}
+
+.habit-with-steps .habit-button{
+  width:100%;
+}
+
+.habit-button-content{
+  min-width:0;
+  flex:1;
+}
+
+.steps-chevron{
+  margin-left:auto;
+  padding-left:8px;
+  opacity:.75;
+  font-size:.8rem;
+}
+
+.routine-step-pill{
+  white-space:nowrap;
+}
+
+.routine-steps-panel{
+  display:grid;
+  gap:2px;
+  margin:-3px 8px 10px;
+  padding:10px;
+  border:1px solid var(--border);
+  border-top:0;
+  border-radius:0 0 14px 14px;
+  background:rgba(255,255,255,.025);
+}
+
+.routine-step-check{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:42px;
+  padding:7px 5px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  cursor:pointer;
+}
+
+.routine-step-check:last-of-type{
+  border-bottom:0;
+}
+
+.routine-step-check input{
+  width:20px;
+  height:20px;
+  flex:0 0 auto;
+  accent-color:currentColor;
+}
+
+.routine-step-check input:checked + span{
+  text-decoration:line-through;
+  opacity:.58;
+}
+
+.routine-step-actions{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding-top:10px;
+}
+
+.routine-step-count{
+  font-size:.82rem;
+  opacity:.72;
+}
+
+.routine-complete-btn{
+  width:auto;
+  margin:0;
+  padding:10px 13px;
+}
+
+@media(max-width:420px){
+  .routine-steps-editor-header,
+  .routine-step-actions{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .routine-steps-editor-header .small-btn,
+  .routine-complete-btn{
+    width:100%;
+  }
+}
