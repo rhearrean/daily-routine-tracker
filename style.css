@@ -320,3 +320,46 @@
     border-radius:16px!important;
   }
 }
+
+
+/* v10.8.7 — Habit reordering */
+.habit-row-main{
+  min-width:0;
+  flex:1 1 auto;
+}
+
+.reorder-actions{
+  display:flex;
+  gap:6px;
+}
+
+.reorder-btn{
+  width:38px;
+  height:38px;
+  padding:0;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--card);
+  color:var(--text);
+  font-size:1.1rem;
+  font-weight:900;
+}
+
+.reorder-btn:disabled{
+  opacity:.28;
+}
+
+@media(max-width:420px){
+  .habit-row{
+    align-items:flex-start;
+  }
+
+  .habit-actions{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .reorder-actions{
+    justify-content:flex-end;
+  }
+}
