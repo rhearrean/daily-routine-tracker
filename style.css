@@ -508,3 +508,128 @@
     width:100%;
   }
 }
+
+
+/* v10.8.9 — Skip Review */
+.skip-review-card{
+  margin:0 0 14px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:var(--card);
+  box-shadow:var(--shadow);
+}
+
+.skip-review-toggle{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:17px 18px;
+  border:0;
+  background:transparent;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+
+.skip-review-copy{
+  min-width:0;
+}
+
+.skip-review-copy h2{
+  margin:3px 0 2px;
+  font-size:1.18rem;
+}
+
+.skip-review-message{
+  margin:0;
+  font-size:.84rem;
+  opacity:.72;
+}
+
+.skip-review-chevron{
+  display:grid;
+  place-items:center;
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  font-size:1rem;
+  font-weight:800;
+  background:rgba(255,255,255,.06);
+}
+
+.skip-review-clear{
+  border-color:rgba(74,222,128,.25);
+}
+
+.skip-review-clear .skip-review-chevron{
+  background:rgba(74,222,128,.13);
+}
+
+.skip-review-attention{
+  border-color:rgba(251,191,36,.3);
+}
+
+.skip-review-attention .skip-review-chevron{
+  background:rgba(251,191,36,.12);
+}
+
+.skip-review-details{
+  display:grid;
+  gap:15px;
+  padding:0 18px 18px;
+  border-top:1px solid var(--border);
+}
+
+.skip-review-group{
+  padding-top:14px;
+}
+
+.skip-review-group h3{
+  margin:0 0 8px;
+  font-size:.9rem;
+}
+
+.skip-review-list{
+  display:grid;
+  gap:7px;
+}
+
+.skip-review-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:42px;
+  padding:9px 11px;
+  border-radius:12px;
+  background:rgba(255,255,255,.035);
+}
+
+.skip-review-item-name{
+  min-width:0;
+  font-weight:700;
+}
+
+.skip-review-item-status{
+  flex:0 0 auto;
+  padding:5px 8px;
+  border-radius:999px;
+  font-size:.72rem;
+  font-weight:800;
+}
+
+.skip-review-item-status.skipped{
+  background:rgba(251,191,36,.12);
+}
+
+.skip-review-item-status.missed{
+  background:rgba(248,113,113,.12);
+}
+
+.habit-button-content .status-pill:empty{
+  display:none;
+}
