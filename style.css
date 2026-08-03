@@ -633,3 +633,49 @@
 .habit-button-content .status-pill:empty{
   display:none;
 }
+
+
+/* v10.9.0 — One-tap Skip */
+.habit-card-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:stretch;
+  gap:8px;
+}
+
+.habit-card-row .habit-button{
+  min-width:0;
+}
+
+.habit-skip-btn{
+  align-self:stretch;
+  min-width:58px;
+  padding:0 12px;
+  border:1px solid rgba(147,197,253,.26);
+  border-radius:16px;
+  background:rgba(147,197,253,.08);
+  color:var(--skip);
+  font-size:.8rem;
+  font-weight:900;
+}
+
+.habit-skip-btn:active{
+  transform:scale(.98);
+}
+
+.habit-card-shell.steps-expanded .habit-card-row{
+  margin-bottom:0;
+}
+
+@media(max-width:380px){
+  .habit-card-row{
+    grid-template-columns:minmax(0,1fr) 52px;
+    gap:6px;
+  }
+
+  .habit-skip-btn{
+    min-width:52px;
+    padding:0 8px;
+    font-size:.74rem;
+  }
+}
