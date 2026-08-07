@@ -700,7 +700,6 @@
 /* v10.9.4 — Compact Habit Rows */
 .compact-habit-title{display:flex;align-items:center;gap:7px;min-width:0}
 .compact-habit-title strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.habit-snooze-icon{flex:0 0 auto;font-size:.82rem;color:#93c5fd;line-height:1}
 .compact-habit-row small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 
