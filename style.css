@@ -702,3 +702,113 @@
 .compact-habit-title strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .habit-snooze-icon{flex:0 0 auto;font-size:.82rem;color:#93c5fd;line-height:1}
 .compact-habit-row small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+
+/* v10.9.5 — Settings habit-row layout fix */
+.compact-habit-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:start!important;
+  column-gap:10px!important;
+  row-gap:6px!important;
+  min-height:0!important;
+  padding:12px 13px!important;
+}
+
+.compact-habit-row .habit-row-main{
+  min-width:0!important;
+  width:100%!important;
+  padding-top:2px;
+}
+
+.compact-habit-title{
+  display:flex!important;
+  align-items:flex-start!important;
+  gap:6px!important;
+  min-width:0!important;
+}
+
+.compact-habit-title strong{
+  min-width:0!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  line-height:1.2!important;
+  overflow-wrap:anywhere!important;
+}
+
+.compact-habit-row small{
+  margin-top:5px!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  line-height:1.25!important;
+}
+
+.compact-habit-actions{
+  display:grid!important;
+  grid-template-columns:auto auto!important;
+  grid-template-areas:
+    "resume edit"
+    "reorder delete"!important;
+  align-items:center!important;
+  justify-items:end!important;
+  gap:6px!important;
+  width:auto!important;
+  max-width:none!important;
+  flex:0 0 auto!important;
+}
+
+.compact-habit-actions > .resume-btn{grid-area:resume}
+.compact-habit-actions > .edit-btn{grid-area:edit}
+.compact-habit-actions > .compact-delete-btn{grid-area:delete}
+
+.compact-habit-actions > .reorder-actions{
+  grid-area:reorder;
+  display:flex!important;
+  width:auto!important;
+  gap:5px!important;
+  justify-content:flex-end!important;
+}
+
+.compact-habit-actions .reorder-btn{
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  border-radius:11px!important;
+  font-size:1rem!important;
+}
+
+.compact-habit-actions .edit-btn,
+.compact-habit-actions .resume-btn{
+  width:auto!important;
+  min-width:0!important;
+  padding:7px 10px!important;
+  font-size:.82rem!important;
+}
+
+.compact-habit-actions .compact-delete-btn{
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  border-radius:11px!important;
+  font-size:.9rem!important;
+}
+
+.habit-snooze-icon{margin-top:2px}
+
+@media(max-width:420px){
+  .compact-habit-row{
+    grid-template-columns:minmax(0,1fr) auto!important;
+    padding:11px 12px!important;
+  }
+
+  .compact-habit-actions{
+    max-width:none!important;
+  }
+
+  .compact-habit-actions .edit-btn,
+  .compact-habit-actions .resume-btn{
+    padding:7px 9px!important;
+  }
+}
