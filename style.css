@@ -811,3 +811,10 @@
     padding:7px 9px!important;
   }
 }
+
+/* v10.9.7 — Scheduled Time Blocks */
+.block-active-days-wrap{display:grid;gap:8px}
+.block-active-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.block-active-days button{min-width:0;padding:9px 3px;border:1px solid var(--border);border-radius:11px;background:var(--card-soft);color:var(--text);font-size:.72rem;font-weight:800}
+.block-active-days button.selected{background:var(--accent);color:#052e16;border-color:transparent}
+@media(max-width:390px){.block-active-days{gap:4px}.block-active-days button{padding:8px 1px;font-size:.68rem}}
