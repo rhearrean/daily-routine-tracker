@@ -1,9 +1,9 @@
-const APP_META={version:"10.9.7",build:"2026.08.08.scheduled-time-blocks",schemaVersion:7,releaseDate:"August 8, 2026",releaseNotes:["Added optional Active Days to time blocks.","Time-block overlap validation is now day-aware.","Today only shows time blocks active for the current day.","Added an Add Habit button to Settings using the existing habit editor."]};
+const APP_META={version:"10.9.8",build:"2026.08.16.safe-block-delete",schemaVersion:7,releaseDate:"August 16, 2026",releaseNotes:["Added safe deletion for custom time blocks.","Blocks in use now show an impact screen before deletion.","Habit occurrences can be moved to another block or removed while preserving the rest of the habit.","Anytime remains protected and cannot be deleted."]};
 const HABITS_KEY="dailyRoutineHabits.v10_1",COMPLETIONS_KEY="dailyRoutineCompletions.v10_1",BLOCKS_KEY="dailyRoutineTimeBlocks.v10_1",SETTINGS_KEY="dailyRoutineSettings.v10_3",ROUTINE_STEPS_KEY="dailyRoutineSteps.v10_8_8";
 const OLD_KEYS=[["dailyRoutineHabits.v10","dailyRoutineCompletions.v10","dailyRoutineTimeBlocks.v10"],["dailyRoutineHabits.v9","dailyRoutineCompletions.v9",null],["dailyRoutineHabits.v8","dailyRoutineCompletions.v8",null],["dailyRoutineHabits.v7","dailyRoutineCompletions.v7",null],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6",null],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5",null],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4",null],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3",null],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2",null]];
 const DEFAULT_BLOCKS=[{id:"early",label:"🌅 Early Morning",start:"05:00",end:"07:59"},{id:"morning",label:"☀️ Morning",start:"08:00",end:"11:59"},{id:"afternoon",label:"🌤 Afternoon",start:"12:00",end:"15:59"},{id:"late-afternoon",label:"🌇 Late Afternoon",start:"16:00",end:"19:59"},{id:"evening",label:"🌙 Evening",start:"20:00",end:"23:59"},{id:"anytime",label:"Anytime",start:"",end:""}],defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[],occurrences:[{id:"read-book-evening",block:"evening"}],cutoff:"",allowLate:true}];
-const $=id=>document.getElementById(id);let selectedCustomDays=[],selectedOccurrenceBlocks=[],selectedRoutineSteps=[],selectedBlockDays=[0,1,2,3,4,5,6],editingHabitId=null,editingBlockId=null,activeAction=null,expandedCompletedBlocks={},expandedRoutineSteps={},skipReviewExpanded=false;
-const E={todayTitle:$("todayTitle"),dateText:$("dateText"),mainVersionText:$("mainVersionText"),headerVersionBadge:$("headerVersionBadge"),progressText:$("progressText"),progressPercent:$("progressPercent"),timeBlocks:$("timeBlocks"),emptyTodayText:$("emptyTodayText"),resetTodayBtn:$("resetTodayBtn"),streakText:$("streakText"),weekText:$("weekText"),recentDays:$("recentDays"),habitForm:$("habitForm"),habitName:$("habitName"),habitSchedule:$("habitSchedule"),customDays:$("customDays"),allHabits:$("allHabits"),habitStats:$("habitStats"),openAddHabitBtn:$("openAddHabitBtn"),openStatsBtn:$("openStatsBtn"),closeStatsBtn:$("closeStatsBtn"),statsPanel:$("statsPanel"),openSettingsBtn:$("openSettingsBtn"),closeSettingsBtn:$("closeSettingsBtn"),habitEditorSheet:$("habitEditorSheet"),closeHabitEditorBtn:$("closeHabitEditorBtn"),settingsPanel:$("settingsPanel"),exportBtn:$("exportBtn"),importBtn:$("importBtn"),backupBox:$("backupBox"),backupMessage:$("backupMessage"),formTitle:$("formTitle"),formModeLabel:$("formModeLabel"),saveHabitBtn:$("saveHabitBtn"),cancelEditBtn:$("cancelEditBtn"),habitCutoff:$("habitCutoff"),habitAllowLate:$("habitAllowLate"),occurrenceBlocks:$("occurrenceBlocks"),blockSettings:$("blockSettings"),saveBlocksBtn:$("saveBlocksBtn"),appInfo:$("appInfo"),actionSheet:$("actionSheet"),actionTitle:$("actionTitle"),actionCompleteBtn:$("actionCompleteBtn"),actionSkipBtn:$("actionSkipBtn"),actionClearBtn:$("actionClearBtn"),actionCancelBtn:$("actionCancelBtn"),autoCollapseBlocks:$("autoCollapseBlocks"),skipReviewCard:$("skipReviewCard"),skipReviewToggle:$("skipReviewToggle"),skipReviewCount:$("skipReviewCount"),skipReviewMessage:$("skipReviewMessage"),skipReviewChevron:$("skipReviewChevron"),skipReviewDetails:$("skipReviewDetails"),addBlockBtn:$("addBlockBtn"),blockEditorSheet:$("blockEditorSheet"),blockForm:$("blockForm"),blockFormModeLabel:$("blockFormModeLabel"),blockFormTitle:$("blockFormTitle"),blockName:$("blockName"),blockStart:$("blockStart"),blockEnd:$("blockEnd"),blockTimeFields:$("blockTimeFields"),blockConflictMessage:$("blockConflictMessage"),saveBlockBtn:$("saveBlockBtn"),closeBlockEditorBtn:$("closeBlockEditorBtn"),cancelBlockEditBtn:$("cancelBlockEditBtn"),blockActiveDaysWrap:$("blockActiveDaysWrap"),blockActiveDays:$("blockActiveDays"),settingsAddHabitBtn:$("settingsAddHabitBtn")};
+const $=id=>document.getElementById(id);let selectedCustomDays=[],selectedOccurrenceBlocks=[],selectedRoutineSteps=[],selectedBlockDays=[0,1,2,3,4,5,6],editingHabitId=null,editingBlockId=null,pendingDeleteBlockId=null,activeAction=null,expandedCompletedBlocks={},expandedRoutineSteps={},skipReviewExpanded=false;
+const E={todayTitle:$("todayTitle"),dateText:$("dateText"),mainVersionText:$("mainVersionText"),headerVersionBadge:$("headerVersionBadge"),progressText:$("progressText"),progressPercent:$("progressPercent"),timeBlocks:$("timeBlocks"),emptyTodayText:$("emptyTodayText"),resetTodayBtn:$("resetTodayBtn"),streakText:$("streakText"),weekText:$("weekText"),recentDays:$("recentDays"),habitForm:$("habitForm"),habitName:$("habitName"),habitSchedule:$("habitSchedule"),customDays:$("customDays"),allHabits:$("allHabits"),habitStats:$("habitStats"),openAddHabitBtn:$("openAddHabitBtn"),openStatsBtn:$("openStatsBtn"),closeStatsBtn:$("closeStatsBtn"),statsPanel:$("statsPanel"),openSettingsBtn:$("openSettingsBtn"),closeSettingsBtn:$("closeSettingsBtn"),habitEditorSheet:$("habitEditorSheet"),closeHabitEditorBtn:$("closeHabitEditorBtn"),settingsPanel:$("settingsPanel"),exportBtn:$("exportBtn"),importBtn:$("importBtn"),backupBox:$("backupBox"),backupMessage:$("backupMessage"),formTitle:$("formTitle"),formModeLabel:$("formModeLabel"),saveHabitBtn:$("saveHabitBtn"),cancelEditBtn:$("cancelEditBtn"),habitCutoff:$("habitCutoff"),habitAllowLate:$("habitAllowLate"),occurrenceBlocks:$("occurrenceBlocks"),blockSettings:$("blockSettings"),saveBlocksBtn:$("saveBlocksBtn"),appInfo:$("appInfo"),actionSheet:$("actionSheet"),actionTitle:$("actionTitle"),actionCompleteBtn:$("actionCompleteBtn"),actionSkipBtn:$("actionSkipBtn"),actionClearBtn:$("actionClearBtn"),actionCancelBtn:$("actionCancelBtn"),autoCollapseBlocks:$("autoCollapseBlocks"),skipReviewCard:$("skipReviewCard"),skipReviewToggle:$("skipReviewToggle"),skipReviewCount:$("skipReviewCount"),skipReviewMessage:$("skipReviewMessage"),skipReviewChevron:$("skipReviewChevron"),skipReviewDetails:$("skipReviewDetails"),addBlockBtn:$("addBlockBtn"),blockEditorSheet:$("blockEditorSheet"),blockForm:$("blockForm"),blockFormModeLabel:$("blockFormModeLabel"),blockFormTitle:$("blockFormTitle"),blockName:$("blockName"),blockStart:$("blockStart"),blockEnd:$("blockEnd"),blockTimeFields:$("blockTimeFields"),blockConflictMessage:$("blockConflictMessage"),saveBlockBtn:$("saveBlockBtn"),closeBlockEditorBtn:$("closeBlockEditorBtn"),cancelBlockEditBtn:$("cancelBlockEditBtn"),blockActiveDaysWrap:$("blockActiveDaysWrap"),blockActiveDays:$("blockActiveDays"),settingsAddHabitBtn:$("settingsAddHabitBtn"),deleteBlockBtn:$("deleteBlockBtn"),blockDeleteSheet:$("blockDeleteSheet"),blockDeleteTitle:$("blockDeleteTitle"),blockDeleteSummary:$("blockDeleteSummary"),blockDeleteAffected:$("blockDeleteAffected"),blockDeleteMoveTarget:$("blockDeleteMoveTarget"),closeBlockDeleteBtn:$("closeBlockDeleteBtn"),cancelBlockDeleteBtn:$("cancelBlockDeleteBtn"),confirmMoveDeleteBtn:$("confirmMoveDeleteBtn"),confirmRemoveDeleteBtn:$("confirmRemoveDeleteBtn")};
 function safeParse(v,f){try{return JSON.parse(v)||f}catch{return f}}function getLocalDateKey(d=new Date()){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}function dateFromOffset(o=0){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+o);return d}function getTodayKey(){return getLocalDateKey(new Date())}function nowMinutes(){const d=new Date();return d.getHours()*60+d.getMinutes()}function timeToMinutes(v){if(!v)return null;const[h,m]=v.split(":").map(Number);return h*60+m}function formatTime(v){if(!v)return"";const[h,m]=v.split(":").map(Number),d=new Date();d.setHours(h,m,0,0);return d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}function blockTimeLabel(b){return b.start&&b.end?`${formatTime(b.start)} – ${formatTime(b.end)}`:"Anytime"}function makeId(name){const slug=String(name||"habit").trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");return`${slug||"habit"}-${Date.now()}`}
 function loadSettings(){return{autoCollapseCompletedBlocks:true,...safeParse(localStorage.getItem(SETTINGS_KEY),{})}}function saveSettings(settings){localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings))}
 function normalizeBlock(block){const rawDays=Array.isArray(block.days)&&block.days.length?block.days:[0,1,2,3,4,5,6],days=[...new Set(rawDays.map(Number).filter(day=>day>=0&&day<=6))].sort();return{id:String(block.id||`block-${Date.now()}-${Math.random().toString(36).slice(2,7)}`),label:String(block.label||"New Block").trim()||"New Block",start:block.id==="anytime"?"":String(block.start||""),end:block.id==="anytime"?"":String(block.end||""),days:block.id==="anytime"?[0,1,2,3,4,5,6]:days}}
@@ -210,10 +210,134 @@ function renderBlockActiveDays(){E.blockActiveDays.innerHTML="";BLOCK_DAY_LABELS
 function formatBlockRange(block){if(block.id==="anytime")return"No set time";return`${formatTime(block.start)} – ${formatTime(block.end)}`}
 function clearBlockConflict(){if(!E.blockConflictMessage)return;E.blockConflictMessage.textContent="";E.blockConflictMessage.classList.add("hidden")}
 function showBlockConflict(message){E.blockConflictMessage.textContent=message;E.blockConflictMessage.classList.remove("hidden")}
-function openBlockEditor(blockId=null){editingBlockId=blockId;clearBlockConflict();if(blockId){const block=loadBlocks().find(item=>item.id===blockId);if(!block)return;E.blockFormTitle.textContent="Edit Block";E.blockName.value=block.label;E.blockStart.value=block.start||"";E.blockEnd.value=block.end||"";const isAnytime=block.id==="anytime";selectedBlockDays=isAnytime?[0,1,2,3,4,5,6]:(Array.isArray(block.days)?[...block.days]:[0,1,2,3,4,5,6]);E.blockTimeFields.classList.toggle("hidden",isAnytime);E.blockActiveDaysWrap.classList.toggle("hidden",isAnytime);E.blockForm.dataset.anytime=String(isAnytime);E.saveBlockBtn.textContent="Save Changes"}else{E.blockFormTitle.textContent="Add Block";E.blockName.value="";E.blockStart.value="";E.blockEnd.value="";selectedBlockDays=[0,1,2,3,4,5,6];E.blockTimeFields.classList.remove("hidden");E.blockActiveDaysWrap.classList.remove("hidden");E.blockForm.dataset.anytime="false";E.saveBlockBtn.textContent="Add Block"}renderBlockActiveDays();E.blockEditorSheet.classList.remove("hidden");setTimeout(()=>E.blockName.focus(),50)}
+function openBlockEditor(blockId=null){editingBlockId=blockId;clearBlockConflict();if(blockId){const block=loadBlocks().find(item=>item.id===blockId);if(!block)return;E.blockFormTitle.textContent="Edit Block";E.blockName.value=block.label;E.blockStart.value=block.start||"";E.blockEnd.value=block.end||"";const isAnytime=block.id==="anytime";selectedBlockDays=isAnytime?[0,1,2,3,4,5,6]:(Array.isArray(block.days)?[...block.days]:[0,1,2,3,4,5,6]);E.blockTimeFields.classList.toggle("hidden",isAnytime);E.blockActiveDaysWrap.classList.toggle("hidden",isAnytime);E.blockForm.dataset.anytime=String(isAnytime);E.saveBlockBtn.textContent="Save Changes";E.deleteBlockBtn.classList.toggle("hidden",isAnytime)}else{E.blockFormTitle.textContent="Add Block";E.blockName.value="";E.blockStart.value="";E.blockEnd.value="";selectedBlockDays=[0,1,2,3,4,5,6];E.blockTimeFields.classList.remove("hidden");E.blockActiveDaysWrap.classList.remove("hidden");E.blockForm.dataset.anytime="false";E.saveBlockBtn.textContent="Add Block";E.deleteBlockBtn.classList.add("hidden")}renderBlockActiveDays();E.blockEditorSheet.classList.remove("hidden");setTimeout(()=>E.blockName.focus(),50)}
 function closeBlockEditor(){editingBlockId=null;clearBlockConflict();E.blockEditorSheet.classList.add("hidden")}
 function validateBlockDraft(draft,blocks){if(!draft.label)return"Enter a block name.";if(draft.id==="anytime")return"";if(!draft.start||!draft.end)return"Choose both a start and end time.";if(!Array.isArray(draft.days)||draft.days.length===0)return"Choose at least one active day.";const start=blockMinutes(draft.start),end=blockMinutes(draft.end);if(start===null||end===null)return"Choose valid start and end times.";if(start>=end)return"End time must be later than start time. Blocks that cross midnight are not supported yet.";const conflict=blocks.find(other=>{if(other.id===draft.id||other.id==="anytime"||!other.start||!other.end)return false;const otherDays=Array.isArray(other.days)&&other.days.length?other.days:[0,1,2,3,4,5,6];if(!otherDays.some(day=>draft.days.includes(day)))return false;const otherStart=blockMinutes(other.start),otherEnd=blockMinutes(other.end);return start<otherEnd&&end>otherStart});if(conflict){const otherDays=Array.isArray(conflict.days)&&conflict.days.length?conflict.days:[0,1,2,3,4,5,6],shared=otherDays.filter(day=>draft.days.includes(day)).map(day=>BLOCK_DAY_LABELS[day]).join(", ");return`Time conflict: this overlaps with ${conflict.label} (${formatBlockRange(conflict)}) on ${shared}. Change one of the time ranges or active days before saving.`}return""}
 function saveBlockFromEditor(event){event.preventDefault();const blocks=loadBlocks(),existing=editingBlockId?blocks.find(block=>block.id===editingBlockId):null,isAnytime=existing?.id==="anytime",draft={id:existing?.id||`block-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,label:E.blockName.value.trim(),start:isAnytime?"":E.blockStart.value,end:isAnytime?"":E.blockEnd.value,days:isAnytime?[0,1,2,3,4,5,6]:[...selectedBlockDays].sort()},error=validateBlockDraft(draft,blocks);if(error){showBlockConflict(error);return}const next=existing?blocks.map(block=>block.id===existing.id?draft:block):[...blocks,draft];saveBlocks(next);closeBlockEditor();render();E.backupMessage.textContent=existing?"Time block updated.":"Time block added."}
+
+function getBlockUsage(blockId){
+  const usages=[];
+  loadHabits().forEach(habit=>{
+    habit.occurrences.forEach(occurrence=>{
+      if(occurrence.block===blockId)usages.push({habitId:habit.id,habitName:habit.name,occurrenceId:occurrence.id});
+    });
+  });
+  return usages;
+}
+
+function closeBlockDeleteSheet(){
+  pendingDeleteBlockId=null;
+  E.blockDeleteSheet.classList.add("hidden");
+}
+
+function deleteUnusedBlock(blockId){
+  const block=loadBlocks().find(item=>item.id===blockId);
+  if(!block||block.id==="anytime")return;
+  if(!confirm(`Delete "${block.label}"?`))return;
+  saveBlocks(loadBlocks().filter(item=>item.id!==blockId));
+  if(editingBlockId===blockId)closeBlockEditor();
+  render();
+  E.backupMessage.textContent="Time block deleted.";
+}
+
+function openBlockDeleteReview(blockId){
+  const block=loadBlocks().find(item=>item.id===blockId);
+  if(!block||block.id==="anytime")return;
+
+  const usages=getBlockUsage(blockId);
+  if(!usages.length){deleteUnusedBlock(blockId);return}
+
+  pendingDeleteBlockId=blockId;
+  E.blockDeleteTitle.textContent=`Delete ${block.label}?`;
+  E.blockDeleteSummary.textContent=`${usages.length} habit ${usages.length===1?"occurrence uses":"occurrences use"} this block. Choose what should happen before deleting it.`;
+
+  E.blockDeleteAffected.innerHTML="";
+  const counts={};
+  usages.forEach(item=>{counts[item.habitName]=(counts[item.habitName]||0)+1});
+  Object.entries(counts).forEach(([name,count])=>{
+    const row=document.createElement("div");
+    row.className="block-delete-item";
+    row.innerHTML=`<strong>${name}</strong><small>${count>1?`${count} occurrences`:"1 occurrence"}</small>`;
+    E.blockDeleteAffected.appendChild(row);
+  });
+
+  const targets=loadBlocks().filter(item=>item.id!==blockId);
+  E.blockDeleteMoveTarget.innerHTML="";
+  targets.forEach(target=>{
+    const option=document.createElement("option");
+    option.value=target.id;
+    option.textContent=target.label;
+    E.blockDeleteMoveTarget.appendChild(option);
+  });
+
+  E.confirmMoveDeleteBtn.disabled=targets.length===0;
+  E.blockDeleteSheet.classList.remove("hidden");
+}
+
+function cleanupOccurrenceState(occurrenceIds){
+  const completions=loadCompletions();
+  Object.keys(completions).forEach(dateKey=>{
+    occurrenceIds.forEach(id=>{
+      if(completions[dateKey])delete completions[dateKey][id];
+    });
+  });
+  saveCompletions(completions);
+
+  const steps=loadRoutineStepState();
+  Object.keys(steps).forEach(dateKey=>{
+    occurrenceIds.forEach(id=>{
+      if(steps[dateKey])delete steps[dateKey][id];
+    });
+  });
+  saveRoutineStepState(steps);
+}
+
+function moveDeleteBlock(){
+  const blockId=pendingDeleteBlockId;
+  const targetId=E.blockDeleteMoveTarget.value;
+  if(!blockId||!targetId||blockId===targetId)return;
+
+  const habits=loadHabits().map(habit=>{
+    const mapped=habit.occurrences.map(occurrence=>occurrence.block===blockId?{...occurrence,block:targetId}:occurrence);
+    const seen=new Set(),deduped=[];
+    mapped.forEach(occurrence=>{
+      if(seen.has(occurrence.block))return;
+      seen.add(occurrence.block);
+      deduped.push(occurrence);
+    });
+    return{...habit,occurrences:sortOccurrences(deduped)};
+  });
+
+  saveHabits(habits);
+  saveBlocks(loadBlocks().filter(item=>item.id!==blockId));
+  closeBlockDeleteSheet();
+  if(editingBlockId===blockId)closeBlockEditor();
+  render();
+  E.backupMessage.textContent="Habit occurrences moved and time block deleted.";
+}
+
+function removeOccurrencesDeleteBlock(){
+  const blockId=pendingDeleteBlockId;
+  if(!blockId)return;
+
+  const removedIds=[];
+  const nextHabits=loadHabits().map(habit=>{
+    const removed=habit.occurrences.filter(occurrence=>occurrence.block===blockId);
+    const remaining=habit.occurrences.filter(occurrence=>occurrence.block!==blockId);
+    removed.forEach(occurrence=>removedIds.push(occurrence.id));
+    if(!removed.length)return habit;
+    if(remaining.length)return{...habit,occurrences:sortOccurrences(remaining)};
+    return{...habit,occurrences:[{id:`${habit.id}-anytime-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,block:"anytime"}]};
+  });
+
+  saveHabits(nextHabits);
+  cleanupOccurrenceState(removedIds);
+  saveBlocks(loadBlocks().filter(item=>item.id!==blockId));
+  closeBlockDeleteSheet();
+  if(editingBlockId===blockId)closeBlockEditor();
+  render();
+  E.backupMessage.textContent="Affected occurrences removed and time block deleted.";
+}
 function renderBlockSettings(){E.blockSettings.innerHTML="";loadBlocks().forEach(block=>{const row=document.createElement("div");row.className=`compact-setting-row ${block.id==="anytime"?"protected-block-row":""}`;const details=block.id==="anytime"?`${formatBlockRange(block)} • Pinned`:`${formatBlockRange(block)} • ${formatBlockDays(block)}`;row.innerHTML=`<div class="compact-setting-copy"><strong>${block.label}</strong><small>${details}</small></div><button class="edit-btn block-edit-btn" type="button">Edit</button>`;row.querySelector(".block-edit-btn").addEventListener("click",()=>openBlockEditor(block.id));E.blockSettings.appendChild(row)})}
 function renderOccurrenceButtons(){E.occurrenceBlocks.innerHTML="";loadBlocks().forEach(block=>{const b=document.createElement("button");b.type="button";b.dataset.block=block.id;b.className=selectedOccurrenceBlocks.includes(block.id)?"selected":"";b.textContent=block.label;b.addEventListener("click",()=>{selectedOccurrenceBlocks=selectedOccurrenceBlocks.includes(block.id)?selectedOccurrenceBlocks.filter(id=>id!==block.id):[...selectedOccurrenceBlocks,block.id];b.classList.toggle("selected",selectedOccurrenceBlocks.includes(block.id))});E.occurrenceBlocks.appendChild(b)})}function renderDisplaySettings(){if(E.autoCollapseBlocks)E.autoCollapseBlocks.checked=loadSettings().autoCollapseCompletedBlocks!==false}function renderAppInfo(){E.appInfo.innerHTML=`<div class="info-row"><strong>Version ${APP_META.version}</strong><small>Build ${APP_META.build}</small><small>Schema ${APP_META.schemaVersion}</small><small>Released ${APP_META.releaseDate}</small></div><div class="release-note"><strong>Release Notes</strong><ul>${APP_META.releaseNotes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`}
 function makeBackupPayload(){
@@ -368,6 +492,12 @@ E.addBlockBtn.addEventListener("click",()=>openBlockEditor());
 E.settingsAddHabitBtn.addEventListener("click",openAddHabit);
 E.closeBlockEditorBtn.addEventListener("click",closeBlockEditor);
 E.cancelBlockEditBtn.addEventListener("click",closeBlockEditor);
+E.deleteBlockBtn.addEventListener("click",()=>{if(editingBlockId)openBlockDeleteReview(editingBlockId)});
+E.closeBlockDeleteBtn.addEventListener("click",closeBlockDeleteSheet);
+E.cancelBlockDeleteBtn.addEventListener("click",closeBlockDeleteSheet);
+E.confirmMoveDeleteBtn.addEventListener("click",moveDeleteBlock);
+E.confirmRemoveDeleteBtn.addEventListener("click",removeOccurrencesDeleteBlock);
+E.blockDeleteSheet.addEventListener("click",event=>{if(event.target===E.blockDeleteSheet)closeBlockDeleteSheet()});
 E.blockForm.addEventListener("submit",saveBlockFromEditor);
 E.blockStart.addEventListener("input",clearBlockConflict);
 E.blockEnd.addEventListener("input",clearBlockConflict);

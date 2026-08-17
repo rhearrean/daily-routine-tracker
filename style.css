@@ -818,3 +818,13 @@
 .block-active-days button{min-width:0;padding:9px 3px;border:1px solid var(--border);border-radius:11px;background:var(--card-soft);color:var(--text);font-size:.72rem;font-weight:800}
 .block-active-days button.selected{background:var(--accent);color:#052e16;border-color:transparent}
 @media(max-width:390px){.block-active-days{gap:4px}.block-active-days button{padding:8px 1px;font-size:.68rem}}
+
+/* v10.9.8 — Safe Time Block Delete */
+.block-delete-card{max-height:92vh}
+.block-delete-affected{display:grid;gap:8px;margin:14px 0}
+.block-delete-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--border);border-radius:14px;background:var(--card-soft)}
+.block-delete-item strong,.block-delete-item small{display:block}
+.block-delete-item small{color:var(--muted);font-size:.78rem}
+.block-delete-label{display:grid;gap:8px;color:var(--muted);font-size:.9rem;font-weight:800}
+.block-delete-actions{display:grid;gap:9px;margin-top:14px}
+.block-delete-actions .primary-btn,.block-delete-actions .danger-btn,.block-delete-actions .small-btn{width:100%}
