@@ -1,4 +1,4 @@
-const APP_META={version:"10.10.1",build:"2026.08.18.update-gate-test",schemaVersion:7,releaseDate:"August 18, 2026",releaseNotes:["Test release for the backup-before-update flow.","No data schema or routine behavior changed.","Future updates now remain waiting until a backup is exported and confirmed."]};
+const APP_META={version:"10.10.2",build:"2026.08.18.ios-update-reliability",schemaVersion:7,releaseDate:"August 18, 2026",releaseNotes:["Improved update detection in the installed iPhone PWA.","Update checks now bypass cached service-worker files and rerun when the app returns to the foreground.","Added an automatic reload fallback after approving an update."]};
 const HABITS_KEY="dailyRoutineHabits.v10_1",COMPLETIONS_KEY="dailyRoutineCompletions.v10_1",BLOCKS_KEY="dailyRoutineTimeBlocks.v10_1",SETTINGS_KEY="dailyRoutineSettings.v10_3",ROUTINE_STEPS_KEY="dailyRoutineSteps.v10_8_8";
 const OLD_KEYS=[["dailyRoutineHabits.v10","dailyRoutineCompletions.v10","dailyRoutineTimeBlocks.v10"],["dailyRoutineHabits.v9","dailyRoutineCompletions.v9",null],["dailyRoutineHabits.v8","dailyRoutineCompletions.v8",null],["dailyRoutineHabits.v7","dailyRoutineCompletions.v7",null],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6",null],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5",null],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4",null],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3",null],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2",null]];
 const DEFAULT_BLOCKS=[{id:"early",label:"🌅 Early Morning",start:"05:00",end:"07:59"},{id:"morning",label:"☀️ Morning",start:"08:00",end:"11:59"},{id:"afternoon",label:"🌤 Afternoon",start:"12:00",end:"15:59"},{id:"late-afternoon",label:"🌇 Late Afternoon",start:"16:00",end:"19:59"},{id:"evening",label:"🌙 Evening",start:"20:00",end:"23:59"},{id:"anytime",label:"Anytime",start:"",end:""}],defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[],occurrences:[{id:"read-book-evening",block:"evening"}],cutoff:"",allowLate:true}];
@@ -466,6 +466,7 @@ function setupSafeUpdateFlow(){
     E.installUpdateBtn.disabled=true;
     E.updateStatus.textContent="Installing update…";
     waitingServiceWorker.postMessage({type:"ACTIVATE_AFTER_BACKUP"});
+    setTimeout(()=>location.reload(),8000);
   });
   if(E.laterUpdateBtn)E.laterUpdateBtn.addEventListener("click",()=>E.updateSheet.classList.add("hidden"));
   if(!("serviceWorker" in navigator))return;
@@ -475,7 +476,11 @@ function setupSafeUpdateFlow(){
     refreshing=true;
     location.reload();
   });
-  navigator.serviceWorker.register("service-worker.js").then(registration=>{
+  navigator.serviceWorker.register("service-worker.js",{updateViaCache:"none"}).then(registration=>{
+    const checkForUpdate=()=>{
+      if(registration.waiting)showWaitingUpdate(registration.waiting);
+      registration.update().catch(()=>{});
+    };
     if(registration.waiting)showWaitingUpdate(registration.waiting);
     registration.addEventListener("updatefound",()=>{
       const worker=registration.installing;
@@ -484,7 +489,10 @@ function setupSafeUpdateFlow(){
         if(worker.state==="installed"&&navigator.serviceWorker.controller)showWaitingUpdate(worker);
       });
     });
-    registration.update().catch(()=>{});
+    document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkForUpdate();});
+    window.addEventListener("pageshow",checkForUpdate);
+    setInterval(checkForUpdate,5*60*1000);
+    checkForUpdate();
   }).catch(()=>{});
 }
 

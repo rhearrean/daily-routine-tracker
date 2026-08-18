@@ -1,4 +1,4 @@
-const CACHE_NAME="daily-routine-v10-10-1";
+const CACHE_NAME="daily-routine-v10-10-2";
 const UPDATE_GATE_BOOTSTRAP=false;
 const FILES_TO_CACHE=["./","./index.html","./style.css","./app.js","./manifest.json","./icons/icon-192.png","./icons/icon-512.png"];
 
@@ -10,7 +10,7 @@ self.addEventListener("install",event=>{
 });
 
 self.addEventListener("message",event=>{
-  if(event.data?.type==="ACTIVATE_AFTER_BACKUP")self.skipWaiting();
+  if(event.data?.type==="ACTIVATE_AFTER_BACKUP")event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener("activate",event=>{
