@@ -1,8 +1,8 @@
-const APP_META={version:"10.10.5",build:"2026.08.18.finish-button-test",schemaVersion:7,releaseDate:"August 18, 2026",releaseNotes:["Verification release for the Open Updated Version button.","No data schema, routine, or storage behavior changed.","Confirms that updates wait for your explicit finish action."]};
+const APP_META={version:"10.10.6",build:"2026.08.18.locked-update-flow",schemaVersion:7,releaseDate:"August 18, 2026",releaseNotes:["Fixed the Update Approved screen getting stuck before Update Ready.","Backup confirmation now becomes available after a single export attempt on iPhone.","All update controls are locked and a progress indicator is shown during activation."]};
 const HABITS_KEY="dailyRoutineHabits.v10_1",COMPLETIONS_KEY="dailyRoutineCompletions.v10_1",BLOCKS_KEY="dailyRoutineTimeBlocks.v10_1",SETTINGS_KEY="dailyRoutineSettings.v10_3",ROUTINE_STEPS_KEY="dailyRoutineSteps.v10_8_8";
 const OLD_KEYS=[["dailyRoutineHabits.v10","dailyRoutineCompletions.v10","dailyRoutineTimeBlocks.v10"],["dailyRoutineHabits.v9","dailyRoutineCompletions.v9",null],["dailyRoutineHabits.v8","dailyRoutineCompletions.v8",null],["dailyRoutineHabits.v7","dailyRoutineCompletions.v7",null],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6",null],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5",null],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4",null],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3",null],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2",null]];
 const DEFAULT_BLOCKS=[{id:"early",label:"🌅 Early Morning",start:"05:00",end:"07:59"},{id:"morning",label:"☀️ Morning",start:"08:00",end:"11:59"},{id:"afternoon",label:"🌤 Afternoon",start:"12:00",end:"15:59"},{id:"late-afternoon",label:"🌇 Late Afternoon",start:"16:00",end:"19:59"},{id:"evening",label:"🌙 Evening",start:"20:00",end:"23:59"},{id:"anytime",label:"Anytime",start:"",end:""}],defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[],occurrences:[{id:"read-book-evening",block:"evening"}],cutoff:"",allowLate:true}];
-const $=id=>document.getElementById(id);let selectedCustomDays=[],selectedOccurrenceBlocks=[],selectedRoutineSteps=[],selectedBlockDays=[0,1,2,3,4,5,6],editingHabitId=null,editingBlockId=null,pendingDeleteBlockId=null,activeAction=null,expandedCompletedBlocks={},expandedRoutineSteps={},skipReviewExpanded=false,recoveryTimer=null,waitingServiceWorker=null;
+const $=id=>document.getElementById(id);let selectedCustomDays=[],selectedOccurrenceBlocks=[],selectedRoutineSteps=[],selectedBlockDays=[0,1,2,3,4,5,6],editingHabitId=null,editingBlockId=null,pendingDeleteBlockId=null,activeAction=null,expandedCompletedBlocks={},expandedRoutineSteps={},skipReviewExpanded=false,recoveryTimer=null,waitingServiceWorker=null,updateReadyShown=false;
 const E={todayTitle:$("todayTitle"),dateText:$("dateText"),mainVersionText:$("mainVersionText"),headerVersionBadge:$("headerVersionBadge"),progressText:$("progressText"),progressPercent:$("progressPercent"),timeBlocks:$("timeBlocks"),emptyTodayText:$("emptyTodayText"),resetTodayBtn:$("resetTodayBtn"),streakText:$("streakText"),weekText:$("weekText"),recentDays:$("recentDays"),habitForm:$("habitForm"),habitName:$("habitName"),habitSchedule:$("habitSchedule"),customDays:$("customDays"),allHabits:$("allHabits"),habitStats:$("habitStats"),openAddHabitBtn:$("openAddHabitBtn"),openStatsBtn:$("openStatsBtn"),closeStatsBtn:$("closeStatsBtn"),statsPanel:$("statsPanel"),openSettingsBtn:$("openSettingsBtn"),closeSettingsBtn:$("closeSettingsBtn"),habitEditorSheet:$("habitEditorSheet"),closeHabitEditorBtn:$("closeHabitEditorBtn"),settingsPanel:$("settingsPanel"),exportBtn:$("exportBtn"),importBtn:$("importBtn"),backupBox:$("backupBox"),backupText:$("backupBox"),backupMessage:$("backupMessage"),recoveryStatus:$("recoveryStatus"),restoreRecoveryBtn:$("restoreRecoveryBtn"),updateSheet:$("updateSheet"),updateExportBtn:$("updateExportBtn"),updateBackupConfirmed:$("updateBackupConfirmed"),installUpdateBtn:$("installUpdateBtn"),laterUpdateBtn:$("laterUpdateBtn"),updateStatus:$("updateStatus"),formTitle:$("formTitle"),formModeLabel:$("formModeLabel"),saveHabitBtn:$("saveHabitBtn"),cancelEditBtn:$("cancelEditBtn"),habitCutoff:$("habitCutoff"),habitAllowLate:$("habitAllowLate"),occurrenceBlocks:$("occurrenceBlocks"),blockSettings:$("blockSettings"),saveBlocksBtn:$("saveBlocksBtn"),appInfo:$("appInfo"),actionSheet:$("actionSheet"),actionTitle:$("actionTitle"),actionCompleteBtn:$("actionCompleteBtn"),actionSkipBtn:$("actionSkipBtn"),actionClearBtn:$("actionClearBtn"),actionCancelBtn:$("actionCancelBtn"),autoCollapseBlocks:$("autoCollapseBlocks"),skipReviewCard:$("skipReviewCard"),skipReviewToggle:$("skipReviewToggle"),skipReviewCount:$("skipReviewCount"),skipReviewMessage:$("skipReviewMessage"),skipReviewChevron:$("skipReviewChevron"),skipReviewDetails:$("skipReviewDetails"),addBlockBtn:$("addBlockBtn"),blockEditorSheet:$("blockEditorSheet"),blockForm:$("blockForm"),blockFormModeLabel:$("blockFormModeLabel"),blockFormTitle:$("blockFormTitle"),blockName:$("blockName"),blockStart:$("blockStart"),blockEnd:$("blockEnd"),blockTimeFields:$("blockTimeFields"),blockConflictMessage:$("blockConflictMessage"),saveBlockBtn:$("saveBlockBtn"),closeBlockEditorBtn:$("closeBlockEditorBtn"),cancelBlockEditBtn:$("cancelBlockEditBtn"),blockActiveDaysWrap:$("blockActiveDaysWrap"),blockActiveDays:$("blockActiveDays"),settingsAddHabitBtn:$("settingsAddHabitBtn"),deleteBlockBtn:$("deleteBlockBtn"),blockDeleteSheet:$("blockDeleteSheet"),blockDeleteTitle:$("blockDeleteTitle"),blockDeleteSummary:$("blockDeleteSummary"),blockDeleteAffected:$("blockDeleteAffected"),blockDeleteMoveTarget:$("blockDeleteMoveTarget"),closeBlockDeleteBtn:$("closeBlockDeleteBtn"),cancelBlockDeleteBtn:$("cancelBlockDeleteBtn"),confirmMoveDeleteBtn:$("confirmMoveDeleteBtn"),confirmRemoveDeleteBtn:$("confirmRemoveDeleteBtn")};
 function safeParse(v,f){try{return JSON.parse(v)||f}catch{return f}}function getLocalDateKey(d=new Date()){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}function dateFromOffset(o=0){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+o);return d}function getTodayKey(){return getLocalDateKey(new Date())}function nowMinutes(){const d=new Date();return d.getHours()*60+d.getMinutes()}function timeToMinutes(v){if(!v)return null;const[h,m]=v.split(":").map(Number);return h*60+m}function formatTime(v){if(!v)return"";const[h,m]=v.split(":").map(Number),d=new Date();d.setHours(h,m,0,0);return d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}function blockTimeLabel(b){return b.start&&b.end?`${formatTime(b.start)} – ${formatTime(b.end)}`:"Anytime"}function makeId(name){const slug=String(name||"habit").trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");return`${slug||"habit"}-${Date.now()}`}
 function loadSettings(){return{autoCollapseCompletedBlocks:true,...safeParse(localStorage.getItem(SETTINGS_KEY),{})}}function saveSettings(settings){localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));scheduleRecoverySnapshot("settings changed")}
@@ -445,7 +445,11 @@ function downloadBackupFile(){
 
 function showWaitingUpdate(worker){
   waitingServiceWorker=worker;
+  updateReadyShown=false;
   if(!E.updateSheet)return;
+  E.updateSheet.classList.remove("is-updating");
+  E.updateSheet.setAttribute("aria-busy","false");
+  E.updateExportBtn.disabled=false;
   E.updateBackupConfirmed.checked=false;
   E.updateBackupConfirmed.disabled=true;
   E.installUpdateBtn.disabled=true;
@@ -453,38 +457,60 @@ function showWaitingUpdate(worker){
   E.laterUpdateBtn.textContent="Remind Me Later";
   E.laterUpdateBtn.dataset.action="later";
   E.laterUpdateBtn.className="small-btn";
+  E.laterUpdateBtn.disabled=false;
   E.updateStatus.textContent="The current version remains active until you finish these steps.";
   E.updateSheet.classList.remove("hidden");
 }
+function setUpdateBusy(){
+  E.updateSheet.classList.add("is-updating");
+  E.updateSheet.setAttribute("aria-busy","true");
+  E.updateExportBtn.disabled=true;
+  E.updateBackupConfirmed.disabled=true;
+  E.installUpdateBtn.disabled=true;
+  E.installUpdateBtn.textContent="Installing Update…";
+  E.installUpdateBtn.classList.add("updating");
+  E.laterUpdateBtn.disabled=true;
+}
+function markUpdateReady(){
+  if(updateReadyShown)return;
+  updateReadyShown=true;
+  waitingServiceWorker=null;
+  E.updateSheet.classList.remove("is-updating");
+  E.updateSheet.setAttribute("aria-busy","false");
+  E.installUpdateBtn.classList.remove("updating");
+  E.installUpdateBtn.textContent="Update Ready";
+  E.updateStatus.textContent="Update ready. Open the updated version when you are ready.";
+  E.laterUpdateBtn.textContent="Open Updated Version";
+  E.laterUpdateBtn.dataset.action="reload";
+  E.laterUpdateBtn.className="primary-btn";
+  E.laterUpdateBtn.disabled=false;
+}
 function setupSafeUpdateFlow(){
   if(E.updateExportBtn)E.updateExportBtn.addEventListener("click",()=>{
-    downloadBackupFile();
     E.updateBackupConfirmed.disabled=false;
     E.updateStatus.textContent="Backup export started. Save it to Files or iCloud Drive, then confirm below.";
+    downloadBackupFile();
   });
   if(E.updateBackupConfirmed)E.updateBackupConfirmed.addEventListener("change",()=>{
     E.installUpdateBtn.disabled=!E.updateBackupConfirmed.checked;
   });
   if(E.installUpdateBtn)E.installUpdateBtn.addEventListener("click",()=>{
     if(!waitingServiceWorker||!E.updateBackupConfirmed.checked)return;
-    E.installUpdateBtn.disabled=true;
-    E.installUpdateBtn.textContent="Update Approved";
-    E.updateStatus.textContent="Preparing the update. Keep this screen open until it says the update is ready.";
-    waitingServiceWorker.postMessage({type:"ACTIVATE_AFTER_BACKUP"});
+    const worker=waitingServiceWorker;
+    setUpdateBusy();
+    E.updateStatus.textContent="Installing the update. Controls are locked until it is ready.";
+    const checkWorkerState=()=>{if(worker.state==="activated")markUpdateReady();};
+    worker.addEventListener("statechange",checkWorkerState);
+    worker.postMessage({type:"ACTIVATE_AFTER_BACKUP"});
+    setTimeout(checkWorkerState,1500);
+    setTimeout(()=>{if(!updateReadyShown)E.updateStatus.textContent="Still installing… Keep the app open a little longer.";},12000);
   });
   if(E.laterUpdateBtn)E.laterUpdateBtn.addEventListener("click",()=>{
     if(E.laterUpdateBtn.dataset.action==="reload")location.reload();
     else E.updateSheet.classList.add("hidden");
   });
   if(!("serviceWorker" in navigator))return;
-  navigator.serviceWorker.addEventListener("controllerchange",()=>{
-    waitingServiceWorker=null;
-    E.installUpdateBtn.textContent="Update Ready";
-    E.updateStatus.textContent="Update ready. Open the updated version when you are ready.";
-    E.laterUpdateBtn.textContent="Open Updated Version";
-    E.laterUpdateBtn.dataset.action="reload";
-    E.laterUpdateBtn.className="primary-btn";
-  });
+  navigator.serviceWorker.addEventListener("controllerchange",markUpdateReady);
   navigator.serviceWorker.register("service-worker.js",{updateViaCache:"none"}).then(registration=>{
     const checkForUpdate=()=>{
       if(registration.waiting)showWaitingUpdate(registration.waiting);

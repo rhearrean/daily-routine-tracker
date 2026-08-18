@@ -841,5 +841,9 @@
 .update-confirm{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--border);border-radius:13px;background:var(--card-soft);font-weight:800}
 .update-confirm input{width:20px;height:20px}
 .update-card button{width:100%}
+.update-sheet.is-updating .update-card{box-shadow:0 24px 70px rgba(0,0,0,.55),0 0 0 2px rgba(34,197,94,.18)}
+#installUpdateBtn.updating{display:flex;align-items:center;justify-content:center;gap:9px}
+#installUpdateBtn.updating::after{content:"";width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:update-spin .75s linear infinite}
+@keyframes update-spin{to{transform:rotate(360deg)}}
 @media(min-width:600px){.update-sheet{align-items:center}}
 
