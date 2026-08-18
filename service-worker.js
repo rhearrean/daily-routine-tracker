@@ -1,7 +1,5 @@
-const CACHE_NAME="daily-routine-v10-10-0";
-// One-time bootstrap: the currently deployed app has no waiting-update UI.
-// Change this to false with the next release so all later updates are gated.
-const UPDATE_GATE_BOOTSTRAP=true;
+const CACHE_NAME="daily-routine-v10-10-1";
+const UPDATE_GATE_BOOTSTRAP=false;
 const FILES_TO_CACHE=["./","./index.html","./style.css","./app.js","./manifest.json","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
