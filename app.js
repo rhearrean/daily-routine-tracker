@@ -1,11 +1,11 @@
-const APP_META={version:"10.9.9",build:"2026.08.17.block-delete-fix",schemaVersion:7,releaseDate:"August 17, 2026",releaseNotes:["Fixed time blocks reappearing after deletion.","Only Anytime is now automatically protected/restored.","All other timed blocks can remain deleted after confirmation or reassignment."]};
+const APP_META={version:"10.10.0",build:"2026.08.18.safe-update-backup",schemaVersion:7,releaseDate:"August 18, 2026",releaseNotes:["Added rolling automatic recovery snapshots.","New versions wait until a JSON backup is exported and confirmed.","Added one-tap recovery from the latest internal snapshot."]};
 const HABITS_KEY="dailyRoutineHabits.v10_1",COMPLETIONS_KEY="dailyRoutineCompletions.v10_1",BLOCKS_KEY="dailyRoutineTimeBlocks.v10_1",SETTINGS_KEY="dailyRoutineSettings.v10_3",ROUTINE_STEPS_KEY="dailyRoutineSteps.v10_8_8";
 const OLD_KEYS=[["dailyRoutineHabits.v10","dailyRoutineCompletions.v10","dailyRoutineTimeBlocks.v10"],["dailyRoutineHabits.v9","dailyRoutineCompletions.v9",null],["dailyRoutineHabits.v8","dailyRoutineCompletions.v8",null],["dailyRoutineHabits.v7","dailyRoutineCompletions.v7",null],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6",null],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5",null],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4",null],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3",null],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2",null]];
 const DEFAULT_BLOCKS=[{id:"early",label:"🌅 Early Morning",start:"05:00",end:"07:59"},{id:"morning",label:"☀️ Morning",start:"08:00",end:"11:59"},{id:"afternoon",label:"🌤 Afternoon",start:"12:00",end:"15:59"},{id:"late-afternoon",label:"🌇 Late Afternoon",start:"16:00",end:"19:59"},{id:"evening",label:"🌙 Evening",start:"20:00",end:"23:59"},{id:"anytime",label:"Anytime",start:"",end:""}],defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[],occurrences:[{id:"read-book-evening",block:"evening"}],cutoff:"",allowLate:true}];
-const $=id=>document.getElementById(id);let selectedCustomDays=[],selectedOccurrenceBlocks=[],selectedRoutineSteps=[],selectedBlockDays=[0,1,2,3,4,5,6],editingHabitId=null,editingBlockId=null,pendingDeleteBlockId=null,activeAction=null,expandedCompletedBlocks={},expandedRoutineSteps={},skipReviewExpanded=false;
-const E={todayTitle:$("todayTitle"),dateText:$("dateText"),mainVersionText:$("mainVersionText"),headerVersionBadge:$("headerVersionBadge"),progressText:$("progressText"),progressPercent:$("progressPercent"),timeBlocks:$("timeBlocks"),emptyTodayText:$("emptyTodayText"),resetTodayBtn:$("resetTodayBtn"),streakText:$("streakText"),weekText:$("weekText"),recentDays:$("recentDays"),habitForm:$("habitForm"),habitName:$("habitName"),habitSchedule:$("habitSchedule"),customDays:$("customDays"),allHabits:$("allHabits"),habitStats:$("habitStats"),openAddHabitBtn:$("openAddHabitBtn"),openStatsBtn:$("openStatsBtn"),closeStatsBtn:$("closeStatsBtn"),statsPanel:$("statsPanel"),openSettingsBtn:$("openSettingsBtn"),closeSettingsBtn:$("closeSettingsBtn"),habitEditorSheet:$("habitEditorSheet"),closeHabitEditorBtn:$("closeHabitEditorBtn"),settingsPanel:$("settingsPanel"),exportBtn:$("exportBtn"),importBtn:$("importBtn"),backupBox:$("backupBox"),backupMessage:$("backupMessage"),formTitle:$("formTitle"),formModeLabel:$("formModeLabel"),saveHabitBtn:$("saveHabitBtn"),cancelEditBtn:$("cancelEditBtn"),habitCutoff:$("habitCutoff"),habitAllowLate:$("habitAllowLate"),occurrenceBlocks:$("occurrenceBlocks"),blockSettings:$("blockSettings"),saveBlocksBtn:$("saveBlocksBtn"),appInfo:$("appInfo"),actionSheet:$("actionSheet"),actionTitle:$("actionTitle"),actionCompleteBtn:$("actionCompleteBtn"),actionSkipBtn:$("actionSkipBtn"),actionClearBtn:$("actionClearBtn"),actionCancelBtn:$("actionCancelBtn"),autoCollapseBlocks:$("autoCollapseBlocks"),skipReviewCard:$("skipReviewCard"),skipReviewToggle:$("skipReviewToggle"),skipReviewCount:$("skipReviewCount"),skipReviewMessage:$("skipReviewMessage"),skipReviewChevron:$("skipReviewChevron"),skipReviewDetails:$("skipReviewDetails"),addBlockBtn:$("addBlockBtn"),blockEditorSheet:$("blockEditorSheet"),blockForm:$("blockForm"),blockFormModeLabel:$("blockFormModeLabel"),blockFormTitle:$("blockFormTitle"),blockName:$("blockName"),blockStart:$("blockStart"),blockEnd:$("blockEnd"),blockTimeFields:$("blockTimeFields"),blockConflictMessage:$("blockConflictMessage"),saveBlockBtn:$("saveBlockBtn"),closeBlockEditorBtn:$("closeBlockEditorBtn"),cancelBlockEditBtn:$("cancelBlockEditBtn"),blockActiveDaysWrap:$("blockActiveDaysWrap"),blockActiveDays:$("blockActiveDays"),settingsAddHabitBtn:$("settingsAddHabitBtn"),deleteBlockBtn:$("deleteBlockBtn"),blockDeleteSheet:$("blockDeleteSheet"),blockDeleteTitle:$("blockDeleteTitle"),blockDeleteSummary:$("blockDeleteSummary"),blockDeleteAffected:$("blockDeleteAffected"),blockDeleteMoveTarget:$("blockDeleteMoveTarget"),closeBlockDeleteBtn:$("closeBlockDeleteBtn"),cancelBlockDeleteBtn:$("cancelBlockDeleteBtn"),confirmMoveDeleteBtn:$("confirmMoveDeleteBtn"),confirmRemoveDeleteBtn:$("confirmRemoveDeleteBtn")};
+const $=id=>document.getElementById(id);let selectedCustomDays=[],selectedOccurrenceBlocks=[],selectedRoutineSteps=[],selectedBlockDays=[0,1,2,3,4,5,6],editingHabitId=null,editingBlockId=null,pendingDeleteBlockId=null,activeAction=null,expandedCompletedBlocks={},expandedRoutineSteps={},skipReviewExpanded=false,recoveryTimer=null,waitingServiceWorker=null;
+const E={todayTitle:$("todayTitle"),dateText:$("dateText"),mainVersionText:$("mainVersionText"),headerVersionBadge:$("headerVersionBadge"),progressText:$("progressText"),progressPercent:$("progressPercent"),timeBlocks:$("timeBlocks"),emptyTodayText:$("emptyTodayText"),resetTodayBtn:$("resetTodayBtn"),streakText:$("streakText"),weekText:$("weekText"),recentDays:$("recentDays"),habitForm:$("habitForm"),habitName:$("habitName"),habitSchedule:$("habitSchedule"),customDays:$("customDays"),allHabits:$("allHabits"),habitStats:$("habitStats"),openAddHabitBtn:$("openAddHabitBtn"),openStatsBtn:$("openStatsBtn"),closeStatsBtn:$("closeStatsBtn"),statsPanel:$("statsPanel"),openSettingsBtn:$("openSettingsBtn"),closeSettingsBtn:$("closeSettingsBtn"),habitEditorSheet:$("habitEditorSheet"),closeHabitEditorBtn:$("closeHabitEditorBtn"),settingsPanel:$("settingsPanel"),exportBtn:$("exportBtn"),importBtn:$("importBtn"),backupBox:$("backupBox"),backupText:$("backupBox"),backupMessage:$("backupMessage"),recoveryStatus:$("recoveryStatus"),restoreRecoveryBtn:$("restoreRecoveryBtn"),updateSheet:$("updateSheet"),updateExportBtn:$("updateExportBtn"),updateBackupConfirmed:$("updateBackupConfirmed"),installUpdateBtn:$("installUpdateBtn"),laterUpdateBtn:$("laterUpdateBtn"),updateStatus:$("updateStatus"),formTitle:$("formTitle"),formModeLabel:$("formModeLabel"),saveHabitBtn:$("saveHabitBtn"),cancelEditBtn:$("cancelEditBtn"),habitCutoff:$("habitCutoff"),habitAllowLate:$("habitAllowLate"),occurrenceBlocks:$("occurrenceBlocks"),blockSettings:$("blockSettings"),saveBlocksBtn:$("saveBlocksBtn"),appInfo:$("appInfo"),actionSheet:$("actionSheet"),actionTitle:$("actionTitle"),actionCompleteBtn:$("actionCompleteBtn"),actionSkipBtn:$("actionSkipBtn"),actionClearBtn:$("actionClearBtn"),actionCancelBtn:$("actionCancelBtn"),autoCollapseBlocks:$("autoCollapseBlocks"),skipReviewCard:$("skipReviewCard"),skipReviewToggle:$("skipReviewToggle"),skipReviewCount:$("skipReviewCount"),skipReviewMessage:$("skipReviewMessage"),skipReviewChevron:$("skipReviewChevron"),skipReviewDetails:$("skipReviewDetails"),addBlockBtn:$("addBlockBtn"),blockEditorSheet:$("blockEditorSheet"),blockForm:$("blockForm"),blockFormModeLabel:$("blockFormModeLabel"),blockFormTitle:$("blockFormTitle"),blockName:$("blockName"),blockStart:$("blockStart"),blockEnd:$("blockEnd"),blockTimeFields:$("blockTimeFields"),blockConflictMessage:$("blockConflictMessage"),saveBlockBtn:$("saveBlockBtn"),closeBlockEditorBtn:$("closeBlockEditorBtn"),cancelBlockEditBtn:$("cancelBlockEditBtn"),blockActiveDaysWrap:$("blockActiveDaysWrap"),blockActiveDays:$("blockActiveDays"),settingsAddHabitBtn:$("settingsAddHabitBtn"),deleteBlockBtn:$("deleteBlockBtn"),blockDeleteSheet:$("blockDeleteSheet"),blockDeleteTitle:$("blockDeleteTitle"),blockDeleteSummary:$("blockDeleteSummary"),blockDeleteAffected:$("blockDeleteAffected"),blockDeleteMoveTarget:$("blockDeleteMoveTarget"),closeBlockDeleteBtn:$("closeBlockDeleteBtn"),cancelBlockDeleteBtn:$("cancelBlockDeleteBtn"),confirmMoveDeleteBtn:$("confirmMoveDeleteBtn"),confirmRemoveDeleteBtn:$("confirmRemoveDeleteBtn")};
 function safeParse(v,f){try{return JSON.parse(v)||f}catch{return f}}function getLocalDateKey(d=new Date()){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}function dateFromOffset(o=0){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+o);return d}function getTodayKey(){return getLocalDateKey(new Date())}function nowMinutes(){const d=new Date();return d.getHours()*60+d.getMinutes()}function timeToMinutes(v){if(!v)return null;const[h,m]=v.split(":").map(Number);return h*60+m}function formatTime(v){if(!v)return"";const[h,m]=v.split(":").map(Number),d=new Date();d.setHours(h,m,0,0);return d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}function blockTimeLabel(b){return b.start&&b.end?`${formatTime(b.start)} – ${formatTime(b.end)}`:"Anytime"}function makeId(name){const slug=String(name||"habit").trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");return`${slug||"habit"}-${Date.now()}`}
-function loadSettings(){return{autoCollapseCompletedBlocks:true,...safeParse(localStorage.getItem(SETTINGS_KEY),{})}}function saveSettings(settings){localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings))}
+function loadSettings(){return{autoCollapseCompletedBlocks:true,...safeParse(localStorage.getItem(SETTINGS_KEY),{})}}function saveSettings(settings){localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));scheduleRecoverySnapshot("settings changed")}
 function normalizeBlock(block){const rawDays=Array.isArray(block.days)&&block.days.length?block.days:[0,1,2,3,4,5,6],days=[...new Set(rawDays.map(Number).filter(day=>day>=0&&day<=6))].sort();return{id:String(block.id||`block-${Date.now()}-${Math.random().toString(36).slice(2,7)}`),label:String(block.label||"New Block").trim()||"New Block",start:block.id==="anytime"?"":String(block.start||""),end:block.id==="anytime"?"":String(block.end||""),days:block.id==="anytime"?[0,1,2,3,4,5,6]:days}}
 function sortBlocks(blocks){const normalized=blocks.map(normalizeBlock),anytime=normalized.find(block=>block.id==="anytime")||normalizeBlock(DEFAULT_BLOCKS.find(block=>block.id==="anytime")),timed=normalized.filter(block=>block.id!=="anytime").sort((a,b)=>(blockMinutes(a.start)??9999)-(blockMinutes(b.start)??9999)||a.label.localeCompare(b.label));return[anytime,...timed]}
 function loadBlocks(){
@@ -28,7 +28,7 @@ function loadBlocks(){
 
   return sortBlocks(blocks);
 }
-function saveBlocks(blocks){localStorage.setItem(BLOCKS_KEY,JSON.stringify(sortBlocks(blocks)))}function blockOrderMap(){const m={};loadBlocks().forEach((b,i)=>m[b.id]=i);return m}function sortOccurrences(occ){const o=blockOrderMap();return[...occ].sort((a,b)=>(o[a.block]??999)-(o[b.block]??999))}
+function saveBlocks(blocks){localStorage.setItem(BLOCKS_KEY,JSON.stringify(sortBlocks(blocks)));scheduleRecoverySnapshot("time blocks changed")}function blockOrderMap(){const m={};loadBlocks().forEach((b,i)=>m[b.id]=i);return m}function sortOccurrences(occ){const o=blockOrderMap();return[...occ].sort((a,b)=>(o[a.block]??999)-(o[b.block]??999))}
 function orderedTodayBlocks(){return loadBlocks().filter(block=>blockIsActiveOn(block,new Date()))}
 
 
@@ -60,10 +60,10 @@ function getBlockVisualClass(block,completed,eligible){
 function blockById(id){return loadBlocks().find(b=>b.id===id)||DEFAULT_BLOCKS.find(b=>b.id==="anytime")}function blockLabel(id){return blockById(id)?.label||"Anytime"}
 function normalizeCompletionEntry(e){if(e===true)return{state:"done",done:true,status:"done",completedAt:""};if(e&&typeof e==="object"){const state=e.state||(e.skipped?"skipped":(e.done!==false?"done":"pending"));return{...e,state,done:state==="done",status:e.status||state}}return null}function normalizeHabit(h){const oldBlock=h.block||"anytime";let occ=Array.isArray(h.occurrences)&&h.occurrences.length>0?h.occurrences:[{id:`${h.id||makeId(h.name||"habit")}-${oldBlock}`,block:oldBlock}];occ=occ.map((o,i)=>({id:o.id||`${h.id||makeId(h.name||"habit")}-${o.block||oldBlock}-${i}`,block:o.block||oldBlock}));const routineSteps=Array.isArray(h.routineSteps)?h.routineSteps.map((s,i)=>typeof s==="string"?{id:`step-${i}-${makeId(s)}`,text:s}:{id:s.id||`step-${i}-${makeId(s.text||"step")}`,text:String(s.text||"").trim()}).filter(s=>s.text):[];return{id:h.id||makeId(h.name||"Habit"),name:h.name||"Habit",schedule:h.schedule||"daily",days:Array.isArray(h.days)?h.days:[],occurrences:sortOccurrences(occ),cutoff:h.cutoff||"",allowLate:h.allowLate!==false,snoozeUntil:h.snoozeUntil||"",routineSteps}}
 function migrateOldDataOnce(){if(!localStorage.getItem(BLOCKS_KEY)){for(const[,,bk]of OLD_KEYS){if(bk){const ob=safeParse(localStorage.getItem(bk),null);if(Array.isArray(ob)&&ob.length>0){saveBlocks(ob);break}}}if(!localStorage.getItem(BLOCKS_KEY))saveBlocks(DEFAULT_BLOCKS)}if(!localStorage.getItem(HABITS_KEY)){for(const[hk]of OLD_KEYS){const oh=safeParse(localStorage.getItem(hk),null);if(Array.isArray(oh)&&oh.length>0){saveHabits(oh.map(normalizeHabit));break}}}if(!localStorage.getItem(COMPLETIONS_KEY)){for(const[,ck]of OLD_KEYS){const old=safeParse(localStorage.getItem(ck),null);if(old&&typeof old==="object"){const habits=loadHabits(),converted={};Object.keys(old).forEach(dateKey=>{converted[dateKey]={};Object.keys(old[dateKey]||{}).forEach(key=>{const habit=habits.find(h=>h.id===key);if(habit)converted[dateKey][habit.occurrences[0].id]=normalizeCompletionEntry(old[dateKey][key]);else converted[dateKey][key]=normalizeCompletionEntry(old[dateKey][key])})});saveCompletions(converted);break}}}}
-function formatDateLabel(){const d=new Date();E.todayTitle.textContent=d.toLocaleDateString(undefined,{weekday:"long"});E.dateText.textContent=d.toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"});if(E.mainVersionText)E.mainVersionText.textContent="";if(E.headerVersionBadge)E.headerVersionBadge.textContent=`v${APP_META.version}`}function loadHabits(){const s=safeParse(localStorage.getItem(HABITS_KEY),null);if(!s||!Array.isArray(s)||s.length===0){saveHabits(defaultHabits);return defaultHabits}return s.map(normalizeHabit)}function saveHabits(h){localStorage.setItem(HABITS_KEY,JSON.stringify(h.map(normalizeHabit)))}function loadCompletions(){return safeParse(localStorage.getItem(COMPLETIONS_KEY),{})}function saveCompletions(d){localStorage.setItem(COMPLETIONS_KEY,JSON.stringify(d))}
+function formatDateLabel(){const d=new Date();E.todayTitle.textContent=d.toLocaleDateString(undefined,{weekday:"long"});E.dateText.textContent=d.toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"});if(E.mainVersionText)E.mainVersionText.textContent="";if(E.headerVersionBadge)E.headerVersionBadge.textContent=`v${APP_META.version}`}function loadHabits(){const s=safeParse(localStorage.getItem(HABITS_KEY),null);if(!s||!Array.isArray(s)||s.length===0){saveHabits(defaultHabits);return defaultHabits}return s.map(normalizeHabit)}function saveHabits(h){localStorage.setItem(HABITS_KEY,JSON.stringify(h.map(normalizeHabit)));scheduleRecoverySnapshot("habits changed")}function loadCompletions(){return safeParse(localStorage.getItem(COMPLETIONS_KEY),{})}function saveCompletions(d){localStorage.setItem(COMPLETIONS_KEY,JSON.stringify(d));scheduleRecoverySnapshot("routine progress changed")}
 
 function loadRoutineStepState(){return safeParse(localStorage.getItem(ROUTINE_STEPS_KEY),{})}
-function saveRoutineStepState(d){localStorage.setItem(ROUTINE_STEPS_KEY,JSON.stringify(d))}
+function saveRoutineStepState(d){localStorage.setItem(ROUTINE_STEPS_KEY,JSON.stringify(d));scheduleRecoverySnapshot("routine steps changed")}
 function getRoutineStepState(dateKey,occurrenceId){return loadRoutineStepState()[dateKey]?.[occurrenceId]||{}}
 function isRoutineStepDone(dateKey,occurrenceId,stepId){return getRoutineStepState(dateKey,occurrenceId)[stepId]===true}
 function toggleRoutineStep(dateKey,occurrenceId,stepId){
@@ -371,6 +371,60 @@ function makeBackupPayload(){
     settings:loadSettings()
   };
 }
+function openRecoveryDb(){
+  return new Promise((resolve,reject)=>{
+    const request=indexedDB.open("dailyRoutineRecovery",1);
+    request.onupgradeneeded=()=>{
+      const db=request.result;
+      if(!db.objectStoreNames.contains("snapshots"))db.createObjectStore("snapshots",{keyPath:"createdAt"});
+    };
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error);
+  });
+}
+async function listRecoverySnapshots(){
+  const db=await openRecoveryDb();
+  return new Promise((resolve,reject)=>{
+    const request=db.transaction("snapshots","readonly").objectStore("snapshots").getAll();
+    request.onsuccess=()=>resolve(request.result.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)));
+    request.onerror=()=>reject(request.error);
+  });
+}
+async function createRecoverySnapshot(reason="app opened"){
+  const snapshot={createdAt:new Date().toISOString(),reason,payload:makeBackupPayload()};
+  const db=await openRecoveryDb();
+  await new Promise((resolve,reject)=>{
+    const request=db.transaction("snapshots","readwrite").objectStore("snapshots").put(snapshot);
+    request.onsuccess=resolve;
+    request.onerror=()=>reject(request.error);
+  });
+  const snapshots=await listRecoverySnapshots();
+  if(snapshots.length>5){
+    const tx=db.transaction("snapshots","readwrite"),store=tx.objectStore("snapshots");
+    snapshots.slice(5).forEach(item=>store.delete(item.createdAt));
+  }
+  updateRecoveryStatus(snapshot);
+  return snapshot;
+}
+function scheduleRecoverySnapshot(reason){
+  clearTimeout(recoveryTimer);
+  recoveryTimer=setTimeout(()=>createRecoverySnapshot(reason).catch(showRecoveryError),400);
+}
+function showRecoveryError(){
+  if(E.recoveryStatus)E.recoveryStatus.textContent="Recovery storage is unavailable. Use Export All Data for safety.";
+}
+function updateRecoveryStatus(snapshot){
+  if(!snapshot)return;
+  if(E.recoveryStatus)E.recoveryStatus.textContent=`Latest snapshot: ${new Date(snapshot.createdAt).toLocaleString()} (${snapshot.reason})`;
+  if(E.restoreRecoveryBtn)E.restoreRecoveryBtn.disabled=false;
+}
+async function restoreLatestRecovery(){
+  const [latest]=await listRecoverySnapshots();
+  if(!latest){if(E.backupMessage)E.backupMessage.textContent="No recovery snapshot is available yet.";return;}
+  if(!confirm(`Restore the snapshot from ${new Date(latest.createdAt).toLocaleString()}? This replaces the current app data.`))return;
+  importBackupPayload(latest.payload);
+  if(E.backupMessage)E.backupMessage.textContent="Latest recovery snapshot restored.";
+}
 function downloadBackupFile(){
   const payload=makeBackupPayload();
   const json=JSON.stringify(payload,null,2);
@@ -386,6 +440,52 @@ function downloadBackupFile(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   if(E.backupText)E.backupText.value=json;
   if(E.backupMessage)E.backupMessage.textContent="Backup file created. Copy/paste backup text is still available below.";
+  return payload;
+}
+
+function showWaitingUpdate(worker){
+  waitingServiceWorker=worker;
+  if(!E.updateSheet)return;
+  E.updateBackupConfirmed.checked=false;
+  E.updateBackupConfirmed.disabled=true;
+  E.installUpdateBtn.disabled=true;
+  E.updateStatus.textContent="The current version remains active until you finish these steps.";
+  E.updateSheet.classList.remove("hidden");
+}
+function setupSafeUpdateFlow(){
+  if(E.updateExportBtn)E.updateExportBtn.addEventListener("click",()=>{
+    downloadBackupFile();
+    E.updateBackupConfirmed.disabled=false;
+    E.updateStatus.textContent="Backup export started. Save it to Files or iCloud Drive, then confirm below.";
+  });
+  if(E.updateBackupConfirmed)E.updateBackupConfirmed.addEventListener("change",()=>{
+    E.installUpdateBtn.disabled=!E.updateBackupConfirmed.checked;
+  });
+  if(E.installUpdateBtn)E.installUpdateBtn.addEventListener("click",()=>{
+    if(!waitingServiceWorker||!E.updateBackupConfirmed.checked)return;
+    E.installUpdateBtn.disabled=true;
+    E.updateStatus.textContent="Installing update…";
+    waitingServiceWorker.postMessage({type:"ACTIVATE_AFTER_BACKUP"});
+  });
+  if(E.laterUpdateBtn)E.laterUpdateBtn.addEventListener("click",()=>E.updateSheet.classList.add("hidden"));
+  if(!("serviceWorker" in navigator))return;
+  let refreshing=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(refreshing)return;
+    refreshing=true;
+    location.reload();
+  });
+  navigator.serviceWorker.register("service-worker.js").then(registration=>{
+    if(registration.waiting)showWaitingUpdate(registration.waiting);
+    registration.addEventListener("updatefound",()=>{
+      const worker=registration.installing;
+      if(!worker)return;
+      worker.addEventListener("statechange",()=>{
+        if(worker.state==="installed"&&navigator.serviceWorker.controller)showWaitingUpdate(worker);
+      });
+    });
+    registration.update().catch(()=>{});
+  }).catch(()=>{});
 }
 
 
@@ -393,15 +493,16 @@ function validateBackupPayload(parsed){
   if(!parsed||typeof parsed!=="object")throw new Error("Backup file is empty or invalid.");
   if(!Array.isArray(parsed.habits))throw new Error("Backup is missing habits.");
   if(!parsed.completions||typeof parsed.completions!=="object")throw new Error("Backup is missing completion history.");
-  if(!Array.isArray(parsed.blocks))throw new Error("Backup is missing time blocks.");
+  if(!Array.isArray(parsed.blocks)&&!Array.isArray(parsed.timeBlocks))throw new Error("Backup is missing time blocks.");
   return parsed;
 }
 function importBackupPayload(parsed){
   const data=validateBackupPayload(parsed);
   saveHabits(data.habits);
   saveCompletions(data.completions);
-  if(data.blocks)saveBlocks(data.blocks);
+  if(data.blocks||data.timeBlocks)saveBlocks(data.blocks||data.timeBlocks);
   if(data.settings)saveSettings(data.settings);
+  if(data.routineStepState)saveRoutineStepState(data.routineStepState);
   resetFormMode();
   render();
   if(E.backupMessage)E.backupMessage.textContent="Backup file imported.";
@@ -523,6 +624,7 @@ E.blockEnd.addEventListener("input",clearBlockConflict);
 E.blockName.addEventListener("input",clearBlockConflict);
 E.blockEditorSheet.addEventListener("click",event=>{if(event.target===E.blockEditorSheet)closeBlockEditor()});E.exportBtn.addEventListener("click",exportHabits);E.importBtn.addEventListener("click",importHabits);E.actionCompleteBtn.addEventListener("click",()=>{if(activeAction){setOccurrenceState(activeAction.dateKey,activeAction.habit,activeAction.occurrence,"done");closeActionMenu()}});E.actionSkipBtn.addEventListener("click",()=>{if(activeAction){setOccurrenceState(activeAction.dateKey,activeAction.habit,activeAction.occurrence,"skipped");closeActionMenu()}});E.actionClearBtn.addEventListener("click",()=>{if(activeAction){setOccurrenceState(activeAction.dateKey,activeAction.habit,activeAction.occurrence,"clear");closeActionMenu()}});E.actionCancelBtn.addEventListener("click",closeActionMenu);E.actionSheet.addEventListener("click",e=>{if(e.target===E.actionSheet)closeActionMenu()});if(E.autoCollapseBlocks)E.autoCollapseBlocks.addEventListener("change",()=>{saveSettings({...loadSettings(),autoCollapseCompletedBlocks:E.autoCollapseBlocks.checked});expandedCompletedBlocks={};render()});
 if(E.exportBtn)E.exportBtn.addEventListener("click",downloadBackupFile);
+if(E.restoreRecoveryBtn)E.restoreRecoveryBtn.addEventListener("click",()=>restoreLatestRecovery().catch(showRecoveryError));
 
 if(E.importBtn)E.importBtn.addEventListener("click",(e)=>{if(E.backupText&&!E.backupText.value.trim()){e.stopImmediatePropagation();chooseBackupFile();}},true);
 ensureBackupFileInput();
@@ -544,4 +646,5 @@ if(E.backupFileInput){
   });
 }
 
-if("serviceWorker"in navigator)navigator.serviceWorker.register("service-worker.js");setupSnoozeField();setupRoutineStepsField();migrateOldDataOnce();clearExpiredSnoozes();formatDateLabel();resetFormMode();render();setupBackupActionButtons();
+setupSnoozeField();setupRoutineStepsField();migrateOldDataOnce();clearExpiredSnoozes();formatDateLabel();resetFormMode();render();setupBackupActionButtons();setupSafeUpdateFlow();createRecoverySnapshot("app opened").catch(showRecoveryError);
+
