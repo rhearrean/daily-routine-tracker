@@ -1,4 +1,4 @@
-const APP_META={version:"10.10.3",build:"2026.08.18.manual-update-reopen",schemaVersion:7,releaseDate:"August 18, 2026",releaseNotes:["Updates no longer reload the app automatically.","After approving an update, the current screen remains open until you close and reopen the Home Screen PWA.","The update screen now clearly confirms when the new version is ready."]};
+const APP_META={version:"10.10.4",build:"2026.08.18.atomic-pwa-update",schemaVersion:7,releaseDate:"August 18, 2026",releaseNotes:["Prevented service workers from caching files from different releases.","Home Screen launches now check the network before using the offline page.","Added an explicit Open Updated Version button after an update is ready."]};
 const HABITS_KEY="dailyRoutineHabits.v10_1",COMPLETIONS_KEY="dailyRoutineCompletions.v10_1",BLOCKS_KEY="dailyRoutineTimeBlocks.v10_1",SETTINGS_KEY="dailyRoutineSettings.v10_3",ROUTINE_STEPS_KEY="dailyRoutineSteps.v10_8_8";
 const OLD_KEYS=[["dailyRoutineHabits.v10","dailyRoutineCompletions.v10","dailyRoutineTimeBlocks.v10"],["dailyRoutineHabits.v9","dailyRoutineCompletions.v9",null],["dailyRoutineHabits.v8","dailyRoutineCompletions.v8",null],["dailyRoutineHabits.v7","dailyRoutineCompletions.v7",null],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6",null],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5",null],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4",null],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3",null],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2",null]];
 const DEFAULT_BLOCKS=[{id:"early",label:"🌅 Early Morning",start:"05:00",end:"07:59"},{id:"morning",label:"☀️ Morning",start:"08:00",end:"11:59"},{id:"afternoon",label:"🌤 Afternoon",start:"12:00",end:"15:59"},{id:"late-afternoon",label:"🌇 Late Afternoon",start:"16:00",end:"19:59"},{id:"evening",label:"🌙 Evening",start:"20:00",end:"23:59"},{id:"anytime",label:"Anytime",start:"",end:""}],defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[],occurrences:[{id:"read-book-evening",block:"evening"}],cutoff:"",allowLate:true}];
@@ -449,6 +449,10 @@ function showWaitingUpdate(worker){
   E.updateBackupConfirmed.checked=false;
   E.updateBackupConfirmed.disabled=true;
   E.installUpdateBtn.disabled=true;
+  E.installUpdateBtn.textContent="2. Install Update";
+  E.laterUpdateBtn.textContent="Remind Me Later";
+  E.laterUpdateBtn.dataset.action="later";
+  E.laterUpdateBtn.className="small-btn";
   E.updateStatus.textContent="The current version remains active until you finish these steps.";
   E.updateSheet.classList.remove("hidden");
 }
@@ -468,12 +472,18 @@ function setupSafeUpdateFlow(){
     E.updateStatus.textContent="Preparing the update. Keep this screen open until it says the update is ready.";
     waitingServiceWorker.postMessage({type:"ACTIVATE_AFTER_BACKUP"});
   });
-  if(E.laterUpdateBtn)E.laterUpdateBtn.addEventListener("click",()=>E.updateSheet.classList.add("hidden"));
+  if(E.laterUpdateBtn)E.laterUpdateBtn.addEventListener("click",()=>{
+    if(E.laterUpdateBtn.dataset.action==="reload")location.reload();
+    else E.updateSheet.classList.add("hidden");
+  });
   if(!("serviceWorker" in navigator))return;
   navigator.serviceWorker.addEventListener("controllerchange",()=>{
     waitingServiceWorker=null;
     E.installUpdateBtn.textContent="Update Ready";
-    E.updateStatus.textContent="Update ready. Close this app completely, then reopen it from the Home Screen.";
+    E.updateStatus.textContent="Update ready. Open the updated version when you are ready.";
+    E.laterUpdateBtn.textContent="Open Updated Version";
+    E.laterUpdateBtn.dataset.action="reload";
+    E.laterUpdateBtn.className="primary-btn";
   });
   navigator.serviceWorker.register("service-worker.js",{updateViaCache:"none"}).then(registration=>{
     const checkForUpdate=()=>{
