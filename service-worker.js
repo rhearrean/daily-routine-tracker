@@ -1,4 +1,4 @@
-const CACHE_NAME="daily-routine-v10-10-2";
+const CACHE_NAME="daily-routine-v10-10-3";
 const UPDATE_GATE_BOOTSTRAP=false;
 const FILES_TO_CACHE=["./","./index.html","./style.css","./app.js","./manifest.json","./icons/icon-192.png","./icons/icon-512.png"];
 
