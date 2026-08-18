@@ -1,4 +1,4 @@
-const APP_META={version:"10.9.8",build:"2026.08.16.safe-block-delete",schemaVersion:7,releaseDate:"August 16, 2026",releaseNotes:["Added safe deletion for custom time blocks.","Blocks in use now show an impact screen before deletion.","Habit occurrences can be moved to another block or removed while preserving the rest of the habit.","Anytime remains protected and cannot be deleted."]};
+const APP_META={version:"10.9.9",build:"2026.08.17.block-delete-fix",schemaVersion:7,releaseDate:"August 17, 2026",releaseNotes:["Fixed time blocks reappearing after deletion.","Only Anytime is now automatically protected/restored.","All other timed blocks can remain deleted after confirmation or reassignment."]};
 const HABITS_KEY="dailyRoutineHabits.v10_1",COMPLETIONS_KEY="dailyRoutineCompletions.v10_1",BLOCKS_KEY="dailyRoutineTimeBlocks.v10_1",SETTINGS_KEY="dailyRoutineSettings.v10_3",ROUTINE_STEPS_KEY="dailyRoutineSteps.v10_8_8";
 const OLD_KEYS=[["dailyRoutineHabits.v10","dailyRoutineCompletions.v10","dailyRoutineTimeBlocks.v10"],["dailyRoutineHabits.v9","dailyRoutineCompletions.v9",null],["dailyRoutineHabits.v8","dailyRoutineCompletions.v8",null],["dailyRoutineHabits.v7","dailyRoutineCompletions.v7",null],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6",null],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5",null],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4",null],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3",null],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2",null]];
 const DEFAULT_BLOCKS=[{id:"early",label:"🌅 Early Morning",start:"05:00",end:"07:59"},{id:"morning",label:"☀️ Morning",start:"08:00",end:"11:59"},{id:"afternoon",label:"🌤 Afternoon",start:"12:00",end:"15:59"},{id:"late-afternoon",label:"🌇 Late Afternoon",start:"16:00",end:"19:59"},{id:"evening",label:"🌙 Evening",start:"20:00",end:"23:59"},{id:"anytime",label:"Anytime",start:"",end:""}],defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[],occurrences:[{id:"read-book-evening",block:"evening"}],cutoff:"",allowLate:true}];
@@ -8,7 +8,26 @@ function safeParse(v,f){try{return JSON.parse(v)||f}catch{return f}}function get
 function loadSettings(){return{autoCollapseCompletedBlocks:true,...safeParse(localStorage.getItem(SETTINGS_KEY),{})}}function saveSettings(settings){localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings))}
 function normalizeBlock(block){const rawDays=Array.isArray(block.days)&&block.days.length?block.days:[0,1,2,3,4,5,6],days=[...new Set(rawDays.map(Number).filter(day=>day>=0&&day<=6))].sort();return{id:String(block.id||`block-${Date.now()}-${Math.random().toString(36).slice(2,7)}`),label:String(block.label||"New Block").trim()||"New Block",start:block.id==="anytime"?"":String(block.start||""),end:block.id==="anytime"?"":String(block.end||""),days:block.id==="anytime"?[0,1,2,3,4,5,6]:days}}
 function sortBlocks(blocks){const normalized=blocks.map(normalizeBlock),anytime=normalized.find(block=>block.id==="anytime")||normalizeBlock(DEFAULT_BLOCKS.find(block=>block.id==="anytime")),timed=normalized.filter(block=>block.id!=="anytime").sort((a,b)=>(blockMinutes(a.start)??9999)-(blockMinutes(b.start)??9999)||a.label.localeCompare(b.label));return[anytime,...timed]}
-function loadBlocks(){const stored=safeParse(localStorage.getItem(BLOCKS_KEY),null);if(!Array.isArray(stored)||stored.length===0){const defaults=sortBlocks(DEFAULT_BLOCKS);saveBlocks(defaults);return defaults}const merged=[...stored];DEFAULT_BLOCKS.forEach(defaultBlock=>{if(!merged.some(block=>block.id===defaultBlock.id))merged.push(defaultBlock)});return sortBlocks(merged)}
+function loadBlocks(){
+  const stored=safeParse(localStorage.getItem(BLOCKS_KEY),null);
+
+  if(!Array.isArray(stored)||stored.length===0){
+    const defaults=sortBlocks(DEFAULT_BLOCKS);
+    saveBlocks(defaults);
+    return defaults;
+  }
+
+  const blocks=stored.map(normalizeBlock);
+
+  // Anytime is the only protected block. Do not restore deleted timed blocks.
+  if(!blocks.some(block=>block.id==="anytime")){
+    const anytimeDefault=DEFAULT_BLOCKS.find(block=>block.id==="anytime")||{id:"anytime",label:"Anytime",start:"",end:"",days:[0,1,2,3,4,5,6]};
+    blocks.push(normalizeBlock(anytimeDefault));
+    saveBlocks(blocks);
+  }
+
+  return sortBlocks(blocks);
+}
 function saveBlocks(blocks){localStorage.setItem(BLOCKS_KEY,JSON.stringify(sortBlocks(blocks)))}function blockOrderMap(){const m={};loadBlocks().forEach((b,i)=>m[b.id]=i);return m}function sortOccurrences(occ){const o=blockOrderMap();return[...occ].sort((a,b)=>(o[a.block]??999)-(o[b.block]??999))}
 function orderedTodayBlocks(){return loadBlocks().filter(block=>blockIsActiveOn(block,new Date()))}
 
