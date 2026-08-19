@@ -1,6 +1,6 @@
-const CACHE_NAME="daily-routine-v10-10-7";
+const CACHE_NAME="daily-routine-v10-10-8";
 const UPDATE_GATE_BOOTSTRAP=false;
-const FILES_TO_CACHE=["./index.html?v=10.10.7","./style.css?v=10.10.7","./app.js?v=10.10.7","./manifest.json?v=10.10.7","./icons/icon-192.png","./icons/icon-512.png"];
+const FILES_TO_CACHE=["./index.html?v=10.10.8","./style.css?v=10.10.8","./app.js?v=10.10.8","./manifest.json?v=10.10.8","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -24,7 +24,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=10.10.7"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=10.10.8"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));
