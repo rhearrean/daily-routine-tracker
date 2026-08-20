@@ -1,6 +1,7 @@
-const CACHE_NAME="daily-routine-v10-10-12";
+const CACHE_NAME="daily-routine-v10-10-13";
 const UPDATE_GATE_BOOTSTRAP=false;
-const FILES_TO_CACHE=["./index.html?v=10.10.12","./style.css?v=10.10.12","./app.js?v=10.10.12","./manifest.json?v=10.10.12","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"10.10.13",summary:"See what changed before installing an update.",notes:["Added a What's New summary to the safe-update screen.","Future update screens will show the waiting version and a short list of changes."]};
+const FILES_TO_CACHE=["./index.html?v=10.10.13","./style.css?v=10.10.13","./app.js?v=10.10.13","./manifest.json?v=10.10.13","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -11,6 +12,7 @@ self.addEventListener("install",event=>{
 
 self.addEventListener("message",event=>{
   if(event.data?.type==="ACTIVATE_AFTER_BACKUP")event.waitUntil(self.skipWaiting());
+  if(event.data?.type==="GET_RELEASE_META"&&event.source)event.source.postMessage({type:"RELEASE_META",meta:RELEASE_META});
 });
 
 self.addEventListener("activate",event=>{
@@ -24,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=10.10.12"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=10.10.13"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));
