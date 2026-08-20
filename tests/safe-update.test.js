@@ -9,7 +9,7 @@ const html=read("index.html");
 const worker=read("service-worker.js");
 const style=read("style.css");
 
-assert.match(app,/version:"10\.10\.13"/);
+assert.match(app,/version:"10\.10\.14"/);
 assert.match(app,/schemaVersion:7/);
 assert.match(app,/updateViaCache:"none"/);
 assert.match(app,/Installing Update…/);
@@ -39,11 +39,11 @@ assert.match(style,/\.habit-status-pill\{/);
 assert.match(style,/\.update-release-summary\{/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=10\\.10\\.13`));
+  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=10\\.10\\.14`));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v10-10-13"/);
-assert.match(worker,/const RELEASE_META=\{version:"10\.10\.13"/);
+assert.match(worker,/CACHE_NAME="daily-routine-v10-10-14"/);
+assert.match(worker,/const RELEASE_META=\{version:"10\.10\.14"/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -51,6 +51,6 @@ assert.match(worker,/event\.request\.mode==="navigate"/);
 assert.match(worker,/fetch\(event\.request,\{cache:"no-store"\}\)/);
 assert.match(worker,/GET_RELEASE_META/);
 assert.match(worker,/RELEASE_META/);
-assert.doesNotMatch(worker,/10\.10\.12/);
+assert.doesNotMatch(worker,/10\.10\.13/);
 
-console.log("Safe update assertions passed for v10.10.13");
+console.log("Safe update assertions passed for v10.10.14");
