@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v10-10-14";
+const CACHE_NAME="daily-routine-v11-0-0";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"10.10.14",summary:"Verification release for the new update description.",notes:["Tests the new What's New section before installation.","No habit, routine, settings, or data-schema changes."]};
-const FILES_TO_CACHE=["./index.html?v=10.10.14","./style.css?v=10.10.14","./app.js?v=10.10.14","./manifest.json?v=10.10.14","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"11.0.0",summary:"A clean finish when today's routine is resolved.",notes:["Shows a Good job screen after every scheduled habit is completed or skipped.","Skipped habits can be reviewed from the finish screen.","Today's routine can be reopened to review or correct an item.","Rest days, saved data, and the data schema are unchanged."]};
+const FILES_TO_CACHE=["./index.html?v=11.0.0","./style.css?v=11.0.0","./app.js?v=11.0.0","./manifest.json?v=11.0.0","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=10.10.14"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=11.0.0"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));

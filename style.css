@@ -661,6 +661,69 @@
   display:none;
 }
 
+/* v11.0.0 — End-of-Day Experience */
+.end-of-day-card{
+  margin:14px 0;
+  padding:34px 22px;
+  border:1px solid rgba(134,239,172,.34);
+  border-radius:24px;
+  background:linear-gradient(160deg,rgba(22,101,52,.28),rgba(17,24,39,.94) 72%);
+  box-shadow:0 18px 40px rgba(0,0,0,.22);
+  text-align:center;
+}
+
+.end-of-day-card.hidden{
+  display:none;
+}
+
+.end-of-day-icon{
+  margin-bottom:8px;
+  font-size:3rem;
+  line-height:1;
+}
+
+.end-of-day-card h2{
+  margin:7px 0 8px;
+  font-size:1.75rem;
+}
+
+.end-of-day-message{
+  margin:0;
+  font-size:1.05rem;
+  font-weight:750;
+}
+
+.end-of-day-summary{
+  margin:8px 0 0;
+  color:var(--muted);
+}
+
+.end-of-day-actions{
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:22px;
+}
+
+.end-of-day-actions .primary-btn,
+.end-of-day-actions .small-btn{
+  width:auto;
+  margin:0;
+}
+
+@media(max-width:420px){
+  .end-of-day-actions{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .end-of-day-actions .primary-btn,
+  .end-of-day-actions .small-btn{
+    width:100%;
+  }
+}
+
 
 /* v10.9.0 — One-tap Skip */
 .habit-card-row{

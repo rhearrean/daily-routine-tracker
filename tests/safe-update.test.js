@@ -9,7 +9,7 @@ const html=read("index.html");
 const worker=read("service-worker.js");
 const style=read("style.css");
 
-assert.match(app,/version:"10\.10\.14"/);
+assert.match(app,/version:"11\.0\.0"/);
 assert.match(app,/schemaVersion:7/);
 assert.match(app,/updateViaCache:"none"/);
 assert.match(app,/Installing Update…/);
@@ -30,20 +30,27 @@ assert.match(app,/paused:false/);
 assert.match(app,/function showUpdateReleaseInfo/);
 assert.match(app,/GET_RELEASE_META/);
 assert.match(app,/event\.data\?\.type==="RELEASE_META"/);
+assert.match(app,/function renderEndOfDay/);
+assert.match(app,/due\.length>0&&due\.every/);
+assert.match(app,/endOfDayRoutineExpanded/);
 assert.match(html,/<div class="brand-row"><p class="eyebrow">Daily Routine<\/p><span id="headerVersionBadge"/);
+assert.match(html,/id="endOfDayCard"/);
+assert.match(html,/id="todayRoutineCard"/);
+assert.match(html,/Review Skipped/);
 assert.match(html,/id="updateReleaseSummary"/);
 assert.match(html,/id="updateReleaseNotes"/);
 assert.match(style,/\.brand-row\{/);
 assert.match(style,/\.routine-step-reorder\{/);
 assert.match(style,/\.habit-status-pill\{/);
 assert.match(style,/\.update-release-summary\{/);
+assert.match(style,/\.end-of-day-card\{/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=10\\.10\\.14`));
+  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=11\\.0\\.0`));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v10-10-14"/);
-assert.match(worker,/const RELEASE_META=\{version:"10\.10\.14"/);
+assert.match(worker,/CACHE_NAME="daily-routine-v11-0-0"/);
+assert.match(worker,/const RELEASE_META=\{version:"11\.0\.0"/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -51,6 +58,6 @@ assert.match(worker,/event\.request\.mode==="navigate"/);
 assert.match(worker,/fetch\(event\.request,\{cache:"no-store"\}\)/);
 assert.match(worker,/GET_RELEASE_META/);
 assert.match(worker,/RELEASE_META/);
-assert.doesNotMatch(worker,/10\.10\.13/);
+assert.doesNotMatch(worker,/10\.10\.14/);
 
-console.log("Safe update assertions passed for v10.10.14");
+console.log("Safe update assertions passed for v11.0.0");
