@@ -925,7 +925,7 @@
 .recovery-status .small-btn{justify-self:start}
 .update-sheet{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-end;justify-content:center;padding:18px;background:rgba(2,6,23,.72);backdrop-filter:blur(5px)}
 .update-sheet.hidden{display:none}
-.update-card{width:min(100%,520px);display:grid;gap:12px;padding:22px;border:1px solid var(--border);border-radius:24px;background:var(--card);box-shadow:0 24px 70px rgba(0,0,0,.45)}
+.update-card{width:min(100%,520px);max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px);overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;gap:12px;padding:22px;border:1px solid var(--border);border-radius:24px;background:var(--card);box-shadow:0 24px 70px rgba(0,0,0,.45)}
 .update-card h2,.update-card p{margin:0}
 .update-release-summary{padding:12px 14px;border:1px solid rgba(134,239,172,.28);border-radius:15px;background:rgba(22,101,52,.16)}
 .update-release-summary strong{display:block;color:var(--accent);font-size:.92rem}

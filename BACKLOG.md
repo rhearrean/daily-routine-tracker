@@ -4,7 +4,7 @@ This is the authoritative roadmap after the v10.10.x cleanup and stability phase
 
 ## Current release
 
-### v11.1.0 — Repeatable Habits Within a Time Block ✅
+### v11.1.1 — Repeatable Habits Within a Time Block ✅
 
 - Let one habit occurrence be completed multiple times inside the same time block.
 - Keep the card available after the first completion.
@@ -12,6 +12,7 @@ This is the authoritative roadmap after the v10.10.x cleanup and stability phase
 - Support an optional target such as `3 times`.
 - Reaching the target completes the occurrence for Today’s progress but does not lock it.
 - Support no-target repeats, +1, undo, and routine-step reset after each logged repeat.
+- Keep longer update information scrollable and all update controls reachable on iPhone.
 
 ## Completed milestone
 
