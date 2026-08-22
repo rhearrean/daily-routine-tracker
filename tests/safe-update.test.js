@@ -9,7 +9,7 @@ const html=read("index.html");
 const worker=read("service-worker.js");
 const style=read("style.css");
 
-assert.match(app,/version:"11\.1\.2"/);
+assert.match(app,/version:"11\.1\.3"/);
 assert.match(app,/schemaVersion:7/);
 assert.match(app,/updateViaCache:"none"/);
 assert.match(app,/Installing Update…/);
@@ -40,6 +40,8 @@ assert.match(app,/function removeRepeatCompletion/);
 assert.match(app,/function simplifyRepeatControls/);
 assert.match(app,/\.repeat-undo-btn,\.has-routine-steps\.repeatable-habit \.repeat-add-btn/);
 assert.match(app,/button\.textContent="Log Completion"/);
+assert.match(app,/const targetReached=/);
+assert.match(app,/logButton\.disabled=true;logButton\.textContent="Target Complete"/);
 assert.match(app,/repeatCount/);
 assert.match(app,/repeatLog/);
 assert.match(app,/autoCollapse&&!hasRepeatable/);
@@ -64,12 +66,12 @@ assert.match(style,/\.has-routine-steps\.repeatable-habit \.repeat-add-btn\{disp
 assert.match(style,/content:"Log Completion"/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=11\\.1\\.2`));
+  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=11\\.1\\.3`));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v11-1-2"/);
-assert.match(worker,/const RELEASE_META=\{version:"11\.1\.2"/);
-assert.match(worker,/This longer list is included specifically so the update card must scroll/);
+assert.match(worker,/CACHE_NAME="daily-routine-v11-1-3"/);
+assert.match(worker,/const RELEASE_META=\{version:"11\.1\.3"/);
+assert.match(worker,/Target Complete/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -77,6 +79,6 @@ assert.match(worker,/event\.request\.mode==="navigate"/);
 assert.match(worker,/fetch\(event\.request,\{cache:"no-store"\}\)/);
 assert.match(worker,/GET_RELEASE_META/);
 assert.match(worker,/RELEASE_META/);
-assert.doesNotMatch(worker,/11\.1\.1/);
+assert.doesNotMatch(worker,/11\.1\.2/);
 
-console.log("Safe update assertions passed for v11.1.2");
+console.log("Safe update assertions passed for v11.1.3");

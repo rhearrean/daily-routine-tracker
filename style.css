@@ -960,4 +960,5 @@
 .repeat-add-btn::after{content:"Log Completion";font-size:1rem}
 .repeat-actions{grid-template-columns:1fr auto}
 @media(max-width:420px){.repeat-actions{grid-template-columns:1fr}.repeat-actions .repeat-skip-btn{grid-column:auto}}
+.repeatable-habit .repeat-add-btn:disabled,.repeatable-habit .routine-complete-btn:disabled{opacity:.55;cursor:not-allowed}
 

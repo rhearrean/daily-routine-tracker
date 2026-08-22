@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v11-1-2";
+const CACHE_NAME="daily-routine-v11-1-3";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"11.1.2",summary:"This intentionally detailed release verifies that the complete update screen scrolls correctly on smaller iPhone screens while simplifying repeatable-habit controls.",notes:["Repeatable habits now provide one clear way to record each completion.","A repeatable habit with routine steps uses its Log 1 Time button.","A repeatable habit without steps uses a single Log Completion button.","The extra +1 button is hidden when the habit already has a step-based log button.","Tapping the main card no longer creates a second completion for a habit without steps.","The −1 Undo button has been removed from Today.","Each recorded repeat is locked to prevent accidental changes from the main screen.","The current count remains visible beside the habit name.","Optional targets still determine when the occurrence is complete for Today.","Counts may still continue beyond a target by logging another completion.","Repeatable settings and targets remain editable from Settings.","This longer list is included specifically so the update card must scroll.","Backup confirmation and installation safeguards remain unchanged.","Saved habits, completion history, settings, and the data schema remain unchanged."]};
-const FILES_TO_CACHE=["./index.html?v=11.1.2","./style.css?v=11.1.2","./app.js?v=11.1.2","./manifest.json?v=11.1.2","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"11.1.3",summary:"Locks a repeatable habit when its optional target is complete.",notes:["The habit remains checked after reaching its target.","Its log button changes to Target Complete and becomes disabled.","Open-ended repeatable habits without a target can still be logged again.","Saved data and the data schema are unchanged."]};
+const FILES_TO_CACHE=["./index.html?v=11.1.3","./style.css?v=11.1.3","./app.js?v=11.1.3","./manifest.json?v=11.1.3","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=11.1.2"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=11.1.3"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));
