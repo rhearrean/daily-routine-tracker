@@ -9,7 +9,7 @@ const html=read("index.html");
 const worker=read("service-worker.js");
 const style=read("style.css");
 
-assert.match(app,/version:"11\.1\.3"/);
+assert.match(app,/version:"11\.1\.4"/);
 assert.match(app,/schemaVersion:7/);
 assert.match(app,/updateViaCache:"none"/);
 assert.match(app,/Installing Update…/);
@@ -42,9 +42,14 @@ assert.match(app,/\.repeat-undo-btn,\.has-routine-steps\.repeatable-habit \.repe
 assert.match(app,/button\.textContent="Log Completion"/);
 assert.match(app,/const targetReached=/);
 assert.match(app,/logButton\.disabled=true;logButton\.textContent="Target Complete"/);
+assert.match(app,/habitButton\.disabled=true/);
+assert.match(app,/if\(done\)delete expandedRoutineSteps\[o\.id\]/);
+assert.match(app,/function timeBlockPhaseSignature/);
+assert.match(app,/setInterval\(refreshTimeBlockPhase,30000\)/);
 assert.match(app,/repeatCount/);
 assert.match(app,/repeatLog/);
-assert.match(app,/autoCollapse&&!hasRepeatable/);
+assert.match(app,/manualCollapsed===undefined\?defaultCollapsed:manualCollapsed/);
+assert.match(app,/expandedCompletedBlocks\[block\.id\]=!collapsed/);
 assert.match(html,/<div class="brand-row"><p class="eyebrow">Daily Routine<\/p><span id="headerVersionBadge"/);
 assert.match(html,/id="endOfDayCard"/);
 assert.match(html,/id="todayRoutineCard"/);
@@ -66,11 +71,11 @@ assert.match(style,/\.has-routine-steps\.repeatable-habit \.repeat-add-btn\{disp
 assert.match(style,/content:"Log Completion"/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=11\\.1\\.3`));
+  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=11\\.1\\.4`));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v11-1-3"/);
-assert.match(worker,/const RELEASE_META=\{version:"11\.1\.3"/);
+assert.match(worker,/CACHE_NAME="daily-routine-v11-1-4"/);
+assert.match(worker,/const RELEASE_META=\{version:"11\.1\.4"/);
 assert.match(worker,/Target Complete/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
@@ -79,6 +84,6 @@ assert.match(worker,/event\.request\.mode==="navigate"/);
 assert.match(worker,/fetch\(event\.request,\{cache:"no-store"\}\)/);
 assert.match(worker,/GET_RELEASE_META/);
 assert.match(worker,/RELEASE_META/);
-assert.doesNotMatch(worker,/11\.1\.2/);
+assert.doesNotMatch(worker,/11\.1\.3/);
 
-console.log("Safe update assertions passed for v11.1.3");
+console.log("Safe update assertions passed for v11.1.4");
