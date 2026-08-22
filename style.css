@@ -952,3 +952,12 @@
 .repeat-target-wrap.hidden{display:none}
 @media(max-width:420px){.repeat-actions{grid-template-columns:1fr 1fr}.repeat-actions .repeat-skip-btn{grid-column:1/-1}}
 
+/* v11.1.2 — One locked repeat log control */
+.repeat-undo-btn{display:none}
+.repeatable-habit:not(.has-routine-steps) .habit-button{pointer-events:none}
+.has-routine-steps.repeatable-habit .repeat-add-btn{display:none}
+.repeat-add-btn{font-size:0}
+.repeat-add-btn::after{content:"Log Completion";font-size:1rem}
+.repeat-actions{grid-template-columns:1fr auto}
+@media(max-width:420px){.repeat-actions{grid-template-columns:1fr}.repeat-actions .repeat-skip-btn{grid-column:auto}}
+
