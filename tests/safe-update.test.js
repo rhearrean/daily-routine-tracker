@@ -9,7 +9,7 @@ const html=read("index.html");
 const worker=read("service-worker.js");
 const style=read("style.css");
 
-assert.match(app,/version:"11\.0\.0"/);
+assert.match(app,/version:"11\.0\.1"/);
 assert.match(app,/schemaVersion:7/);
 assert.match(app,/updateViaCache:"none"/);
 assert.match(app,/Installing Update…/);
@@ -33,6 +33,7 @@ assert.match(app,/event\.data\?\.type==="RELEASE_META"/);
 assert.match(app,/function renderEndOfDay/);
 assert.match(app,/due\.length>0&&due\.every/);
 assert.match(app,/endOfDayRoutineExpanded/);
+assert.match(app,/h\.occurrences\.filter\(o=>blockIsActiveOn\(blockById\(o\.block\),d\)\)/);
 assert.match(html,/<div class="brand-row"><p class="eyebrow">Daily Routine<\/p><span id="headerVersionBadge"/);
 assert.match(html,/id="endOfDayCard"/);
 assert.match(html,/id="todayRoutineCard"/);
@@ -46,11 +47,11 @@ assert.match(style,/\.update-release-summary\{/);
 assert.match(style,/\.end-of-day-card\{/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=11\\.0\\.0`));
+  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=11\\.0\\.1`));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v11-0-0"/);
-assert.match(worker,/const RELEASE_META=\{version:"11\.0\.0"/);
+assert.match(worker,/CACHE_NAME="daily-routine-v11-0-1"/);
+assert.match(worker,/const RELEASE_META=\{version:"11\.0\.1"/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -58,6 +59,6 @@ assert.match(worker,/event\.request\.mode==="navigate"/);
 assert.match(worker,/fetch\(event\.request,\{cache:"no-store"\}\)/);
 assert.match(worker,/GET_RELEASE_META/);
 assert.match(worker,/RELEASE_META/);
-assert.doesNotMatch(worker,/10\.10\.14/);
+assert.doesNotMatch(worker,/11\.0\.0/);
 
-console.log("Safe update assertions passed for v11.0.0");
+console.log("Safe update assertions passed for v11.0.1");

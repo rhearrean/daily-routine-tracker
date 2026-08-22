@@ -4,13 +4,14 @@ This is the authoritative roadmap after the v10.10.x cleanup and stability phase
 
 ## Current release
 
-### v11.0.0 — End-of-Day Experience ✅
+### v11.0.1 — End-of-Day Experience ✅
 
 - Hide the normal Today list once every scheduled occurrence is completed or skipped.
 - Show a clean “Good job! You're all done for today.” finish state.
 - Acknowledge skipped habits and provide **Review Skipped**.
 - Allow Today’s routine to be reopened for review or correction.
 - Keep Rest Days unchanged and return to the normal Today screen the following day.
+- Count only occurrences in time blocks active for that day, so hidden day-specific blocks cannot prevent completion.
 
 ## Confirmed next builds
 

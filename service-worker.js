@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v11-0-0";
+const CACHE_NAME="daily-routine-v11-0-1";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"11.0.0",summary:"A clean finish when today's routine is resolved.",notes:["Shows a Good job screen after every scheduled habit is completed or skipped.","Skipped habits can be reviewed from the finish screen.","Today's routine can be reopened to review or correct an item.","Rest days, saved data, and the data schema are unchanged."]};
-const FILES_TO_CACHE=["./index.html?v=11.0.0","./style.css?v=11.0.0","./app.js?v=11.0.0","./manifest.json?v=11.0.0","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"11.0.1",summary:"Fixes a hidden occurrence blocking the end-of-day screen.",notes:["Only occurrences in time blocks active today count toward Today's routine and finish screen.","Habits assigned to an inactive day-specific block no longer prevent completion.","Saved data and the data schema are unchanged."]};
+const FILES_TO_CACHE=["./index.html?v=11.0.1","./style.css?v=11.0.1","./app.js?v=11.0.1","./manifest.json?v=11.0.1","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=11.0.0"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=11.0.1"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));
