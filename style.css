@@ -941,3 +941,14 @@
 @keyframes update-spin{to{transform:rotate(360deg)}}
 @media(min-width:600px){.update-sheet{align-items:center}}
 
+/* v11.1.0 — Repeatable Habits */
+.repeatable-habit{border:1px solid rgba(134,239,172,.2);border-radius:19px;padding:8px;background:rgba(134,239,172,.035)}
+.repeat-count-pill{color:var(--accent)}
+.repeat-actions{display:grid;grid-template-columns:auto 1fr auto;gap:8px;margin-top:8px}
+.repeat-actions .small-btn,.repeat-actions .primary-btn,.repeat-actions .habit-skip-btn{width:auto;min-height:42px;margin:0}
+.repeat-actions button:disabled{opacity:.4}
+.repeatable-habit:has(.habit-button.done) .repeat-skip-btn{display:none}
+.repeat-target-wrap{display:grid;gap:8px;padding:12px;border:1px solid var(--border);border-radius:18px;background:rgba(134,239,172,.04)}
+.repeat-target-wrap.hidden{display:none}
+@media(max-width:420px){.repeat-actions{grid-template-columns:1fr 1fr}.repeat-actions .repeat-skip-btn{grid-column:1/-1}}
+

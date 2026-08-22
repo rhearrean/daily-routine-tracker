@@ -4,6 +4,17 @@ This is the authoritative roadmap after the v10.10.x cleanup and stability phase
 
 ## Current release
 
+### v11.1.0 — Repeatable Habits Within a Time Block ✅
+
+- Let one habit occurrence be completed multiple times inside the same time block.
+- Keep the card available after the first completion.
+- Count each completion independently per occurrence and time block.
+- Support an optional target such as `3 times`.
+- Reaching the target completes the occurrence for Today’s progress but does not lock it.
+- Support no-target repeats, +1, undo, and routine-step reset after each logged repeat.
+
+## Completed milestone
+
 ### v11.0.1 — End-of-Day Experience ✅
 
 - Hide the normal Today list once every scheduled occurrence is completed or skipped.
@@ -14,15 +25,6 @@ This is the authoritative roadmap after the v10.10.x cleanup and stability phase
 - Count only occurrences in time blocks active for that day, so hidden day-specific blocks cannot prevent completion.
 
 ## Confirmed next builds
-
-### v11.1 — Repeatable Habits Within a Time Block
-
-- Let one habit occurrence be completed multiple times inside the same time block.
-- Keep the card available after the first completion.
-- Count each completion per occurrence and per time block.
-- Support an optional target such as `3 times`.
-- Reaching the target completes the occurrence for Today’s progress but does not lock it; counts can continue past the target.
-- Support a no-target mode for habits that should be repeated whenever useful.
 
 ### v11.2 — Complete in Order / Habit Locking
 
