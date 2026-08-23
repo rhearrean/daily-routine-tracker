@@ -1,4 +1,4 @@
-const APP_META={version:"11.1.4",build:"2026.08.22.repeat-lock-and-block-collapse",schemaVersion:7,releaseDate:"August 22, 2026",releaseNotes:["Disables the completed repeatable habit card while keeping it visibly checked.","Restores automatic collapsing for future and completed time blocks, including blocks with repeatable habits.","Restores manual expand and collapse for every time block.","Automatically refreshes block state when the next scheduled time begins.","No habit, history, settings, or data-schema changes."]};
+const APP_META={version:"11.1.5",build:"2026.08.23.pause-resume-confirmation",schemaVersion:7,releaseDate:"August 23, 2026",releaseNotes:["Adds a confirmation before pausing a habit.","Adds a confirmation before resuming a paused or snoozed habit.","Prevents accidental Pause or Resume taps in Settings.","No habit, history, settings, or data-schema changes."]};
 const HABITS_KEY="dailyRoutineHabits.v10_1",COMPLETIONS_KEY="dailyRoutineCompletions.v10_1",BLOCKS_KEY="dailyRoutineTimeBlocks.v10_1",SETTINGS_KEY="dailyRoutineSettings.v10_3",ROUTINE_STEPS_KEY="dailyRoutineSteps.v10_8_8";
 const OLD_KEYS=[["dailyRoutineHabits.v10","dailyRoutineCompletions.v10","dailyRoutineTimeBlocks.v10"],["dailyRoutineHabits.v9","dailyRoutineCompletions.v9",null],["dailyRoutineHabits.v8","dailyRoutineCompletions.v8",null],["dailyRoutineHabits.v7","dailyRoutineCompletions.v7",null],["dailyRoutineHabits.v6","dailyRoutineCompletions.v6",null],["dailyRoutineHabits.v5","dailyRoutineCompletions.v5",null],["dailyRoutineHabits.v4","dailyRoutineCompletions.v4",null],["dailyRoutineHabits.v3","dailyRoutineCompletions.v3",null],["dailyRoutineHabits.v2","dailyRoutineCompletions.v2",null]];
 const DEFAULT_BLOCKS=[{id:"early",label:"🌅 Early Morning",start:"05:00",end:"07:59"},{id:"morning",label:"☀️ Morning",start:"08:00",end:"11:59"},{id:"afternoon",label:"🌤 Afternoon",start:"12:00",end:"15:59"},{id:"late-afternoon",label:"🌇 Late Afternoon",start:"16:00",end:"19:59"},{id:"evening",label:"🌙 Evening",start:"20:00",end:"23:59"},{id:"anytime",label:"Anytime",start:"",end:""}],defaultHabits=[{id:"read-book",name:"Read my book",schedule:"daily",days:[],occurrences:[{id:"read-book-evening",block:"evening"}],cutoff:"",allowLate:true}];
@@ -159,6 +159,7 @@ function isHabitPausedOn(h,d=new Date()){
 function pauseHabit(id){
   const habits=loadHabits(),i=habits.findIndex(h=>h.id===id);
   if(i<0)return;
+  if(!confirm(`Pause "${habits[i].name}"?\n\nIt will be hidden from Today until you resume it.`))return;
   const periods=Array.isArray(habits[i].pausePeriods)?habits[i].pausePeriods.map(period=>({...period})):[];
   if(!periods.some(period=>!period.end))periods.push({start:getTodayKey(),end:""});
   habits[i]={...habits[i],paused:true,pausePeriods:periods,snoozeUntil:""};
@@ -168,6 +169,7 @@ function pauseHabit(id){
 function resumeHabit(id){
   const habits=loadHabits(),i=habits.findIndex(h=>h.id===id);
   if(i<0)return;
+  if(!confirm(`Resume "${habits[i].name}"?\n\nIt will return to Today on its scheduled days.`))return;
   const today=getTodayKey(),periods=(habits[i].pausePeriods||[]).map(period=>period.end?period:{...period,end:today});
   habits[i]={...habits[i],paused:false,pausePeriods:periods,snoozeUntil:""};
   saveHabits(habits);

@@ -9,7 +9,7 @@ const html=read("index.html");
 const worker=read("service-worker.js");
 const style=read("style.css");
 
-assert.match(app,/version:"11\.1\.4"/);
+assert.match(app,/version:"11\.1\.5"/);
 assert.match(app,/schemaVersion:7/);
 assert.match(app,/updateViaCache:"none"/);
 assert.match(app,/Installing Update…/);
@@ -25,6 +25,8 @@ assert.match(app,/routine-step-up/);
 assert.match(app,/routine-step-down/);
 assert.match(app,/function isHabitPausedOn/);
 assert.match(app,/function pauseHabit/);
+assert.match(app,/confirm\(`Pause "\$\{habits\[i\]\.name\}"\?/);
+assert.match(app,/confirm\(`Resume "\$\{habits\[i\]\.name\}"\?/);
 assert.match(app,/pausePeriods/);
 assert.match(app,/paused:false/);
 assert.match(app,/function showUpdateReleaseInfo/);
@@ -71,12 +73,12 @@ assert.match(style,/\.has-routine-steps\.repeatable-habit \.repeat-add-btn\{disp
 assert.match(style,/content:"Log Completion"/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=11\\.1\\.4`));
+  assert.match(html,new RegExp(`${asset.replace(".","\\.")}[?]v=11\\.1\\.5`));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v11-1-4"/);
-assert.match(worker,/const RELEASE_META=\{version:"11\.1\.4"/);
-assert.match(worker,/Target Complete/);
+assert.match(worker,/CACHE_NAME="daily-routine-v11-1-5"/);
+assert.match(worker,/const RELEASE_META=\{version:"11\.1\.5"/);
+assert.match(worker,/Pausing a habit now asks for confirmation first/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -84,6 +86,6 @@ assert.match(worker,/event\.request\.mode==="navigate"/);
 assert.match(worker,/fetch\(event\.request,\{cache:"no-store"\}\)/);
 assert.match(worker,/GET_RELEASE_META/);
 assert.match(worker,/RELEASE_META/);
-assert.doesNotMatch(worker,/11\.1\.3/);
+assert.doesNotMatch(worker,/11\.1\.4/);
 
-console.log("Safe update assertions passed for v11.1.4");
+console.log("Safe update assertions passed for v11.1.5");

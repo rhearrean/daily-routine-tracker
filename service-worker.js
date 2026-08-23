@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v11-1-4";
+const CACHE_NAME="daily-routine-v11-1-5";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"11.1.4",summary:"Locks completed repeat cards and restores time-block collapsing.",notes:["A targeted repeatable habit stays checked, shows Target Complete, and its entire card becomes disabled.","Future blocks collapse until their scheduled time begins.","Completed blocks collapse automatically, including those with repeatable habits.","Every time block can again be expanded or collapsed manually.","Saved data and the data schema are unchanged."]};
-const FILES_TO_CACHE=["./index.html?v=11.1.4","./style.css?v=11.1.4","./app.js?v=11.1.4","./manifest.json?v=11.1.4","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"11.1.5",summary:"Prevents accidental Pause and Resume taps in Settings.",notes:["Pausing a habit now asks for confirmation first.","Resuming a paused or snoozed habit also asks for confirmation.","The message explains whether the habit will leave or return to Today.","Saved data and the data schema are unchanged."]};
+const FILES_TO_CACHE=["./index.html?v=11.1.5","./style.css?v=11.1.5","./app.js?v=11.1.5","./manifest.json?v=11.1.5","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=11.1.4"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=11.1.5"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));
