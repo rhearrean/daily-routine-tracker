@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v11-1-5";
+const CACHE_NAME="daily-routine-v11-1-6";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"11.1.5",summary:"Prevents accidental Pause and Resume taps in Settings.",notes:["Pausing a habit now asks for confirmation first.","Resuming a paused or snoozed habit also asks for confirmation.","The message explains whether the habit will leave or return to Today.","Saved data and the data schema are unchanged."]};
-const FILES_TO_CACHE=["./index.html?v=11.1.5","./style.css?v=11.1.5","./app.js?v=11.1.5","./manifest.json?v=11.1.5","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"11.1.6",summary:"Adds a temporary Today-only switch between two time blocks.",notes:["Choose the normally scheduled block and the replacement block in Settings.","Today uses the replacement block and its assigned habits without changing either block's active days.","Clear the switch early if needed, or let the normal schedule return automatically tomorrow.","Saved completion history and the data schema are unchanged."]};
+const FILES_TO_CACHE=["./index.html?v=11.1.6","./style.css?v=11.1.6","./app.js?v=11.1.6","./manifest.json?v=11.1.6","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=11.1.5"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=11.1.6"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));

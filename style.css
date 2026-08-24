@@ -963,3 +963,13 @@
 .repeatable-habit .repeat-add-btn:disabled,.repeatable-habit .routine-complete-btn:disabled{opacity:.55;cursor:not-allowed}
 .repeatable-habit .habit-button:disabled{opacity:1;cursor:default}
 
+/* v11.1.6 — Today-only time-block switch */
+.today-block-switch{display:grid;gap:12px;margin-top:16px;padding:14px;border:1px solid rgba(147,197,253,.28);border-radius:18px;background:rgba(30,64,175,.1)}
+.today-block-switch h3{margin:4px 0 6px}
+.today-block-switch-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.today-block-switch-fields label{display:grid;gap:7px;color:var(--muted);font-size:.82rem;font-weight:800}
+.today-block-switch-actions{display:flex;flex-wrap:wrap;gap:8px}
+.today-block-switch-actions button{margin:0}
+.today-block-switch-status.active{color:var(--skip);font-weight:800}
+@media(max-width:420px){.today-block-switch-fields{grid-template-columns:1fr}.today-block-switch-actions button{width:100%}}
+

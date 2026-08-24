@@ -4,7 +4,7 @@ This is the authoritative roadmap after the v10.10.x cleanup and stability phase
 
 ## Current release
 
-### v11.1.5 — Repeatable Habits and Safety Polish ✅
+### v11.1.6 — Repeatable Habits and Daily Flexibility ✅
 
 - Let one habit occurrence be completed multiple times inside the same time block.
 - Keep the card available after the first completion.
@@ -16,6 +16,7 @@ This is the authoritative roadmap after the v10.10.x cleanup and stability phase
 - Keep targeted repeats checked and disable logging after the target is reached.
 - Disable the completed target card and restore automatic and manual time-block collapsing.
 - Confirm both Pause and Resume actions before changing a habit’s availability.
+- Temporarily replace one scheduled time block with another for Today only.
 - Keep longer update information scrollable and all update controls reachable on iPhone.
 
 ## Completed milestone
