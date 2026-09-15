@@ -1,58 +1,124 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/><title>Daily Routine</title><link rel="manifest" href="manifest.json?v=11.1.6"/><link rel="stylesheet" href="style.css?v=11.1.6"/><meta name="theme-color" content="#111827"/><link rel="apple-touch-icon" href="icons/icon-192.png"/></head><body><main class="app"><section class="hero top-bar"><div><div class="brand-row"><p class="eyebrow">Daily Routine</p><span id="headerVersionBadge" class="version-badge"></span></div><h1 id="todayTitle">Today</h1><p id="dateText" class="date-text"></p><p id="mainVersionText" class="version-small"></p></div><div class="header-actions"><button id="openAddHabitBtn" class="icon-btn add-btn" type="button" aria-label="Add habit">＋</button><button id="openStatsBtn" class="icon-btn" type="button" aria-label="Open stats">📊</button><button id="openSettingsBtn" class="icon-btn" type="button">⚙️</button></div></section><section id="skipReviewCard" class="skip-review-card skip-review-clear" aria-live="polite">
-<button id="skipReviewToggle" class="skip-review-toggle" type="button" aria-expanded="false">
-<div class="skip-review-copy">
-<p class="label">Skipped Today</p>
-<h2 id="skipReviewCount">Nothing Skipped Today</h2>
-<p id="skipReviewMessage" class="skip-review-message">Keep it up!</p>
-</div>
-<span id="skipReviewChevron" class="skip-review-chevron">›</span>
-</button>
-<div id="skipReviewDetails" class="skip-review-details hidden"></div>
-</section><section id="endOfDayCard" class="end-of-day-card hidden" aria-live="polite"><div class="end-of-day-icon" aria-hidden="true">🎉</div><p class="label">Day Complete</p><h2>Good job!</h2><p id="endOfDayMessage" class="end-of-day-message">You're all done for today.</p><p id="endOfDaySummary" class="end-of-day-summary"></p><div class="end-of-day-actions"><button id="endOfDayReviewBtn" class="primary-btn inline hidden" type="button">Review Skipped</button><button id="endOfDayRoutineBtn" class="small-btn" type="button">Show Today's Routine</button></div></section><section id="todayRoutineCard" class="card"><div class="section-header"><div><p class="label">Today's Routine</p><h2>Today</h2></div><button id="resetTodayBtn" class="small-btn" type="button">Reset</button></div><div id="timeBlocks" class="time-blocks"></div><p id="emptyTodayText" class="empty-text">No habits are scheduled for today.</p></section></main><section id="statsPanel" class="settings-panel hidden"><div class="settings-inner"><div class="settings-header"><div><p class="eyebrow">Daily Routine</p><h1>Stats</h1></div><button id="closeStatsBtn" class="icon-btn" type="button">✕</button></div><section class="stats-grid"><div class="card stat-card"><p class="label">Current Streak</p><h2 id="streakText">0 days</h2></div><div class="card stat-card"><p class="label">This Week</p><h2 id="weekText">0/7</h2></div></section><section class="card"><p class="label">Recent Days</p><div id="recentDays" class="recent-days"></div></section><section class="card"><p class="label">Habit Stats</p><h2>By Habit</h2><div id="habitStats" class="habit-stats"></div></section></div></section><section id="settingsPanel" class="settings-panel hidden"><div class="settings-inner"><div class="settings-header"><div><p class="eyebrow">Daily Routine</p><h1>Settings</h1></div><button id="closeSettingsBtn" class="icon-btn" type="button">✕</button></div><section class="card compact-settings-card">
-<div class="section-header">
-<div><p class="label">Time Blocks</p><h2>Routine Windows</h2></div>
-<button id="addBlockBtn" class="small-btn" type="button">＋ Add</button>
-</div>
-	<p class="helper-text">Blocks are automatically ordered by start time. Anytime remains pinned first.</p>
-	<div id="todayBlockSwitch" class="today-block-switch"><div><p class="label">Today Only</p><h3>Switch Time Block</h3><p class="helper-text no-top">Temporarily replace one scheduled block. Your normal days return tomorrow.</p></div><div class="today-block-switch-fields"><label>Instead of<select id="todayBlockSwitchFrom"></select></label><label>Use today<select id="todayBlockSwitchTo"></select></label></div><div class="today-block-switch-actions"><button id="applyTodayBlockSwitchBtn" class="primary-btn inline" type="button">Apply Today</button><button id="clearTodayBlockSwitchBtn" class="small-btn hidden" type="button">Clear Today’s Switch</button></div><p id="todayBlockSwitchStatus" class="helper-text no-top"></p></div>
-	<div id="blockSettings" class="block-settings compact-block-list"></div>
-</section><section class="card"><div class="section-header"><div><p class="label">Habits</p><h2>Manage Existing</h2></div><button id="settingsAddHabitBtn" class="small-btn" type="button">＋ Add</button></div><p class="helper-text">Compact overview of your habits. Tap Edit to open the full habit editor.</p><div id="allHabits" class="all-habits"></div></section><section class="card"><p class="label">Display</p><h2>Today Screen</h2><label class="check-label"><input id="autoCollapseBlocks" type="checkbox" checked/> Auto-collapse completed time blocks</label><p class="helper-text">When a time block is finished, it collapses into a small summary to keep the Today screen clean.</p></section><section class="card"><p class="label">Backup & Restore</p><h2>Import / Export</h2><p class="helper-text">Export includes habits, occurrences, completed/skipped history, time blocks, and stats.</p><div class="recovery-status"><strong>Automatic recovery</strong><small id="recoveryStatus">Preparing your first recovery snapshot…</small><button id="restoreRecoveryBtn" class="small-btn" type="button" disabled>Restore Latest Snapshot</button></div><textarea id="backupBox" placeholder="Your habit backup will appear here"></textarea><div class="button-row"><button id="exportBtn" class="small-btn" type="button">Export All Data</button><button id="importBtn" class="primary-btn inline" type="button">Import Data</button></div><p id="backupMessage" class="helper-text"></p></section><section class="card"><p class="label">App Info</p><h2>Version</h2><div id="appInfo" class="app-info"></div></section></div></section><div id="blockEditorSheet" class="habit-editor-sheet hidden">
-<div class="habit-editor-card block-editor-card">
-<div class="sheet-header">
-<div><p class="label" id="blockFormModeLabel">Time Blocks</p><h2 id="blockFormTitle">Edit Block</h2></div>
-<button id="closeBlockEditorBtn" class="icon-btn" type="button" aria-label="Close time block editor">✕</button>
-</div>
-<form id="blockForm" class="habit-form">
-<label>Block name<input id="blockName" type="text" maxlength="40" autocomplete="off"/></label>
-<div id="blockTimeFields">
-<label>Start time<input id="blockStart" type="time"/></label>
-<label>End time<input id="blockEnd" type="time"/></label>
-</div><div id="blockActiveDaysWrap" class="block-active-days-wrap"><label class="standalone-label">Active Days</label><p class="helper-text no-top">Choose when this block should appear.</p><div id="blockActiveDays" class="block-active-days"></div></div>
-<div id="blockConflictMessage" class="block-conflict-message hidden"></div>
-<button id="saveBlockBtn" class="primary-btn" type="submit">Save Block</button>
-<button id="deleteBlockBtn" class="danger-btn wide hidden" type="button">Delete Block</button>
-<button id="cancelBlockEditBtn" class="small-btn" type="button">Cancel</button>
-</form>
-</div>
-</div>
-<div id="blockDeleteSheet" class="habit-editor-sheet hidden">
-  <div class="habit-editor-card block-delete-card">
-    <div class="sheet-header">
-      <div><p class="label">Delete Time Block</p><h2 id="blockDeleteTitle">Block in use</h2></div>
-      <button id="closeBlockDeleteBtn" class="icon-btn" type="button" aria-label="Close delete block review">✕</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Daily Routine</title>
+  <link rel="manifest" href="manifest.json?v=12.0.0" />
+  <link rel="stylesheet" href="style.css?v=12.0.0" />
+  <meta name="theme-color" content="#111827" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+</head>
+<body>
+  <main class="app">
+    <section class="hero top-bar">
+      <div>
+        <div class="brand-row"><p class="eyebrow">Daily Routine</p><span id="headerVersionBadge" class="version-badge"></span></div>
+        <h1 id="todayTitle">Today</h1>
+        <p id="dateText" class="date-text"></p>
+      </div>
+      <div class="header-actions">
+        <button id="openAddRoutineBtn" class="icon-btn add-btn" type="button" aria-label="Add routine">＋</button>
+        <button id="openStatsBtn" class="icon-btn" type="button" aria-label="Open stats">📊</button>
+        <button id="openSettingsBtn" class="icon-btn" type="button" aria-label="Open settings">⚙️</button>
+      </div>
+    </section>
+
+    <section id="skipReviewCard" class="skip-review-card skip-review-clear" aria-live="polite">
+      <button id="skipReviewToggle" class="skip-review-toggle" type="button" aria-expanded="false">
+        <div class="skip-review-copy"><p class="label">Skipped Today</p><h2 id="skipReviewCount">Nothing Skipped Today</h2><p id="skipReviewMessage" class="skip-review-message">Keep it up!</p></div>
+        <span id="skipReviewChevron" class="skip-review-chevron">›</span>
+      </button>
+      <div id="skipReviewDetails" class="skip-review-details hidden"></div>
+    </section>
+
+    <section id="endOfDayCard" class="end-of-day-card hidden" aria-live="polite">
+      <div class="end-of-day-icon" aria-hidden="true">🎉</div>
+      <p class="label">Day Complete</p><h2>Good job!</h2>
+      <p id="endOfDayMessage" class="end-of-day-message">You're all done for today.</p>
+      <p id="endOfDaySummary" class="end-of-day-summary"></p>
+      <div class="end-of-day-actions">
+        <button id="endOfDayReviewBtn" class="primary-btn inline hidden" type="button">Review Skipped</button>
+        <button id="endOfDayRoutineBtn" class="small-btn" type="button">Show Today's Routines</button>
+      </div>
+    </section>
+
+    <section id="todayRoutineCard" class="card">
+      <div class="section-header">
+        <div><p class="label">Today's Routines</p><h2 id="todayProgressText">Today</h2></div>
+        <button id="resetTodayBtn" class="small-btn" type="button">Reset</button>
+      </div>
+      <div id="routineList" class="routine-list"></div>
+      <p id="emptyTodayText" class="empty-text">No routines are scheduled for today.</p>
+    </section>
+  </main>
+
+  <section id="statsPanel" class="settings-panel hidden">
+    <div class="settings-inner">
+      <div class="settings-header"><div><p class="eyebrow">Daily Routine</p><h1>Stats</h1></div><button id="closeStatsBtn" class="icon-btn" type="button">✕</button></div>
+      <section class="stats-grid"><div class="card stat-card"><p class="label">Current Streak</p><h2 id="streakText">0 days</h2></div><div class="card stat-card"><p class="label">This Week</p><h2 id="weekText">0/7</h2></div></section>
+      <section class="card"><p class="label">Recent Days</p><div id="recentDays" class="recent-days"></div></section>
+      <section class="card"><p class="label">Routine Stats</p><h2>By Routine</h2><div id="routineStats" class="habit-stats"></div></section>
     </div>
-    <p id="blockDeleteSummary" class="helper-text no-top"></p>
-    <div id="blockDeleteAffected" class="block-delete-affected"></div>
-    <label class="block-delete-label">Move affected occurrences to<select id="blockDeleteMoveTarget"></select></label>
-    <div class="block-delete-actions">
-      <button id="confirmMoveDeleteBtn" class="primary-btn" type="button">Move & Delete</button>
-      <button id="confirmRemoveDeleteBtn" class="danger-btn wide" type="button">Remove Occurrences & Delete</button>
-      <button id="cancelBlockDeleteBtn" class="small-btn" type="button">Cancel</button>
+  </section>
+
+  <section id="settingsPanel" class="settings-panel hidden">
+    <div class="settings-inner">
+      <div class="settings-header"><div><p class="eyebrow">Daily Routine</p><h1>Settings</h1></div><button id="closeSettingsBtn" class="icon-btn" type="button">✕</button></div>
+
+      <section class="card compact-settings-card">
+        <div><p class="label">Today Only</p><h2>Switch Routine</h2><p class="helper-text no-top">Temporarily replace one scheduled routine. Your normal schedule returns tomorrow.</p></div>
+        <div class="today-block-switch-fields"><label>Instead of<select id="todayRoutineSwitchFrom"></select></label><label>Use today<select id="todayRoutineSwitchTo"></select></label></div>
+        <div class="today-block-switch-actions"><button id="applyTodayRoutineSwitchBtn" class="primary-btn inline" type="button">Apply Today</button><button id="clearTodayRoutineSwitchBtn" class="small-btn hidden" type="button">Clear Today’s Switch</button></div>
+        <p id="todayRoutineSwitchStatus" class="helper-text no-top"></p>
+      </section>
+
+      <section class="card">
+        <div class="section-header"><div><p class="label">Routines</p><h2>Manage & Order</h2></div><button id="settingsAddRoutineBtn" class="small-btn" type="button">＋ Add</button></div>
+        <p class="helper-text">The saved order controls Today. Times are not used.</p>
+        <div id="allRoutines" class="all-habits"></div>
+      </section>
+
+      <section class="card"><p class="label">Display</p><h2>Today Screen</h2><label class="check-label"><input id="autoCollapseRoutines" type="checkbox" checked /> Auto-collapse completed routines</label></section>
+
+      <section class="card">
+        <p class="label">Backup & Restore</p><h2>Import / Export</h2>
+        <p class="helper-text">Export includes routines, ordered steps, completed/skipped history, settings, and a copy of the previous v11 data.</p>
+        <div class="recovery-status"><strong>Automatic recovery</strong><small id="recoveryStatus">Preparing your first recovery snapshot…</small><button id="restoreRecoveryBtn" class="small-btn" type="button" disabled>Restore Latest Snapshot</button></div>
+        <textarea id="backupBox" placeholder="Your routine backup will appear here"></textarea>
+        <div class="button-row"><button id="exportBtn" class="small-btn" type="button">Export All Data</button><button id="importBtn" class="primary-btn inline" type="button">Import Data</button></div>
+        <p id="backupMessage" class="helper-text"></p>
+      </section>
+
+      <section class="card"><p class="label">App Info</p><h2>Version</h2><div id="appInfo" class="app-info"></div></section>
+    </div>
+  </section>
+
+  <div id="routineEditorSheet" class="habit-editor-sheet hidden">
+    <div class="habit-editor-card">
+      <div class="sheet-header"><div><p class="label" id="formModeLabel">Manage Routines</p><h2 id="formTitle">Add Routine</h2></div><button id="closeRoutineEditorBtn" class="icon-btn" type="button" aria-label="Close routine editor">✕</button></div>
+      <form id="routineForm" class="habit-form">
+        <label>Routine name<input id="routineName" type="text" placeholder="Example: Morning Routine" autocomplete="off" /></label>
+        <label>Schedule<select id="routineSchedule"><option value="daily">Every day</option><option value="weekdays">Weekdays</option><option value="weekends">Weekends</option><option value="custom">Custom days</option></select></label>
+        <div id="customDays" class="custom-days hidden"><button type="button" data-day="1">Mon</button><button type="button" data-day="2">Tue</button><button type="button" data-day="3">Wed</button><button type="button" data-day="4">Thu</button><button type="button" data-day="5">Fri</button><button type="button" data-day="6">Sat</button><button type="button" data-day="0">Sun</button></div>
+        <label class="check-label"><input id="lockSteps" type="checkbox" checked /> Complete steps in order</label>
+        <p class="helper-text no-top">Complete or skip the active step to unlock the next one.</p>
+        <label>Snooze until<input id="routineSnoozeUntil" type="date" /><small class="helper-text no-top">Leave blank to keep the routine active.</small></label>
+        <div class="routine-steps-editor">
+          <div class="routine-steps-editor-header"><div><label class="standalone-label">Ordered Steps</label><p class="helper-text no-top">Duplicate step names are allowed and remain separate.</p></div><button id="addStepBtn" class="small-btn" type="button">＋ Add Step</button></div>
+          <div id="stepsEditorList"></div>
+        </div>
+        <button id="saveRoutineBtn" class="primary-btn" type="submit">Add Routine</button>
+        <button id="cancelEditBtn" class="small-btn hidden" type="button">Cancel Edit</button>
+      </form>
     </div>
   </div>
-</div>
-<div id="habitEditorSheet" class="habit-editor-sheet hidden"><div class="habit-editor-card"><div class="sheet-header"><div><p class="label" id="formModeLabel">Manage Habits</p><h2 id="formTitle">Add Habit</h2></div><button id="closeHabitEditorBtn" class="icon-btn" type="button" aria-label="Close habit editor">✕</button></div><form id="habitForm" class="habit-form"><label>Habit name<input id="habitName" type="text" placeholder="Example: 5-Minute Reset" autocomplete="off"/></label><label>Schedule<select id="habitSchedule"><option value="daily">Every day</option><option value="weekdays">Weekdays</option><option value="weekends">Weekends</option><option value="custom">Custom days</option></select></label><div id="customDays" class="custom-days hidden"><button type="button" data-day="1">Mon</button><button type="button" data-day="2">Tue</button><button type="button" data-day="3">Wed</button><button type="button" data-day="4">Thu</button><button type="button" data-day="5">Fri</button><button type="button" data-day="6">Sat</button><button type="button" data-day="0">Sun</button></div><label>Daily occurrences</label><p class="helper-text no-top">Choose each time block this habit should appear in.</p><div id="occurrenceBlocks" class="occurrence-blocks"></div><label class="check-label repeatable-toggle"><input id="habitRepeatable" type="checkbox"/>Repeatable within each time block</label><p class="helper-text no-top">Each selected time block keeps its own count.</p><div id="repeatTargetWrap" class="repeat-target-wrap hidden"><label>Optional target<input id="habitRepeatTarget" type="number" min="1" step="1" inputmode="numeric" placeholder="Example: 3"/></label><p class="helper-text no-top">Leave blank to count repeats without a larger goal. The first completion resolves Today, and you can keep adding more.</p></div><label>Target / cutoff time<input id="habitCutoff" type="time"/></label><label class="check-label"><input id="habitAllowLate" type="checkbox" checked/>Allow late completion</label><button id="saveHabitBtn" class="primary-btn" type="submit">Add Habit</button><button id="cancelEditBtn" class="small-btn hidden" type="button">Cancel Edit</button></form></div></div><div id="actionSheet" class="action-sheet hidden"><div class="action-card"><p class="label">Occurrence Actions</p><h2 id="actionTitle">Habit</h2><button id="actionCompleteBtn" class="primary-btn" type="button">Complete</button><button id="actionSkipBtn" class="small-btn" type="button">Skip Today</button><button id="actionClearBtn" class="small-btn" type="button">Clear Status</button><button id="actionCancelBtn" class="danger-btn wide" type="button">Cancel</button></div></div>
-<div id="updateSheet" class="update-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="updateTitle"><div class="update-card"><p class="label">Update Available</p><h2 id="updateTitle">Back up before updating</h2><div id="updateReleaseSummary" class="update-release-summary hidden"><strong id="updateReleaseVersion">What's new</strong><ul id="updateReleaseNotes"></ul></div><p class="helper-text">Your current version will stay active until you save a JSON backup and confirm it is safe.</p><ol class="update-steps"><li>Export the latest backup to Files or iCloud Drive.</li><li>Confirm that the file was saved.</li><li>Install the waiting update.</li></ol><button id="updateExportBtn" class="primary-btn" type="button">1. Export Backup</button><label class="update-confirm"><input id="updateBackupConfirmed" type="checkbox" disabled/> I saved the backup file</label><button id="installUpdateBtn" class="primary-btn" type="button" disabled>2. Install Update</button><button id="laterUpdateBtn" class="small-btn" type="button">Remind Me Later</button><p id="updateStatus" class="helper-text" aria-live="polite"></p></div></div>
-<script src="app.js?v=11.1.6"></script><input id="backupFileInput" class="hidden" type="file" accept="application/json,.json" />
-</body></html>
 
+  <div id="updateSheet" class="update-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+    <div class="update-card"><p class="label">Update Available</p><h2 id="updateTitle">Back up before updating</h2><div id="updateReleaseSummary" class="update-release-summary hidden"><strong id="updateReleaseVersion">What's new</strong><ul id="updateReleaseNotes"></ul></div><p class="helper-text">Your current version will stay active until you save a JSON backup and confirm it is safe.</p><ol class="update-steps"><li>Export the latest backup to Files or iCloud Drive.</li><li>Confirm that the file was saved.</li><li>Install the waiting update.</li></ol><button id="updateExportBtn" class="primary-btn" type="button">1. Export Backup</button><label class="update-confirm"><input id="updateBackupConfirmed" type="checkbox" disabled /> I saved the backup file</label><button id="installUpdateBtn" class="primary-btn" type="button" disabled>2. Install Update</button><button id="laterUpdateBtn" class="small-btn" type="button">Remind Me Later</button><p id="updateStatus" class="helper-text" aria-live="polite"></p></div>
+  </div>
+
+  <input id="backupFileInput" class="hidden" type="file" accept="application/json,.json" />
+  <script src="app.js?v=12.0.0"></script>
+</body>
+</html>

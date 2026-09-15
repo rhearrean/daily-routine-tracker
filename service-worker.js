@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v11-1-6";
+const CACHE_NAME="daily-routine-v12-0-0";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"11.1.6",summary:"Adds a temporary Today-only switch between two time blocks.",notes:["Choose the normally scheduled block and the replacement block in Settings.","Today uses the replacement block and its assigned habits without changing either block's active days.","Clear the switch early if needed, or let the normal schedule return automatically tomorrow.","Saved completion history and the data schema are unchanged."]};
-const FILES_TO_CACHE=["./index.html?v=11.1.6","./style.css?v=11.1.6","./app.js?v=11.1.6","./manifest.json?v=11.1.6","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"12.0.0",summary:"Rebuilds the app around ordered routines and steps instead of clock-based time blocks.",notes:["Existing habits and their checklist steps migrate into ordered routines.","Routines are scheduled by weekday and appear in a saved manual order without start or end times.","Duplicate step names are allowed and remain separate checklist items.","Optional step locking requires completing or skipping the active step before the next step unlocks.","Repeat counters are retired; repeated actions are represented by separate ordered steps.","The Today-only switch now replaces one routine with another, such as Office with WFH.","The original v11 data remains stored as a fallback and is included in v12 backups."]};
+const FILES_TO_CACHE=["./index.html?v=12.0.0","./style.css?v=12.0.0","./app.js?v=12.0.0","./manifest.json?v=12.0.0","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=11.1.6"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.0.0"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));

@@ -1,52 +1,58 @@
 # Daily Routine PWA Roadmap
 
-This is the authoritative roadmap after the v10.10.x cleanup and stability phase.
+This roadmap reflects the routine-first redesign chosen after using the app daily.
 
 ## Current release
 
-### v11.1.6 — Repeatable Habits and Daily Flexibility ✅
+### v12.0.0 — Routine-First Redesign
 
-- Let one habit occurrence be completed multiple times inside the same time block.
-- Keep the card available after the first completion.
-- Count each completion independently per occurrence and time block.
-- Support an optional target such as `3 times`.
-- Reaching the target completes the occurrence for Today’s progress but does not lock it.
-- Support no-target repeats and routine-step reset after each logged repeat.
-- Use one log control and lock recorded repeats against Today-screen adjustments.
-- Keep targeted repeats checked and disable logging after the target is reached.
-- Disable the completed target card and restore automatic and manual time-block collapsing.
-- Confirm both Pause and Resume actions before changing a habit’s availability.
-- Temporarily replace one scheduled time block with another for Today only.
-- Keep longer update information scrollable and all update controls reachable on iPhone.
+- Replace clock-based time blocks with manually ordered routines.
+- Give each routine its own weekday schedule.
+- Store a stable routine order and provide Move Up / Move Down controls.
+- Let every routine contain an ordered checklist of steps.
+- Allow duplicate step names; each step keeps a unique ID and independent status.
+- Retire repeat counters; add repeated actions as separate ordered steps instead.
+- Make **Complete steps in order** optional per routine.
+- When order locking is enabled, completing or skipping the active step unlocks the next step.
+- Allow Undo only where it cannot bypass the locked sequence.
+- Complete a routine automatically when every step is completed or skipped.
+- Auto-collapse completed routines while allowing manual expansion.
+- Replace the Today-only time-block switch with a Today-only routine replacement, such as Office → WFH.
+- Preserve Pause / Resume confirmations, snoozing, End-of-Day, skipped review, stats, recovery snapshots, backup-gated updates, and import/export.
+- Migrate v11 habits, occurrences, checklist steps, history, and settings without deleting the original v11 data.
+- Keep historical v11 repeat information inside the untouched legacy data and v12 backup archive.
 
-## Completed milestone
-
-### v11.0.1 — End-of-Day Experience ✅
-
-- Hide the normal Today list once every scheduled occurrence is completed or skipped.
-- Show a clean “Good job! You're all done for today.” finish state.
-- Acknowledge skipped habits and provide **Review Skipped**.
-- Allow Today’s routine to be reopened for review or correction.
-- Keep Rest Days unchanged and return to the normal Today screen the following day.
-- Count only occurrences in time blocks active for that day, so hidden day-specific blocks cannot prevent completion.
-
-## Confirmed next builds
+## Superseded plan
 
 ### v11.2 — Complete in Order / Habit Locking
 
-- Add optional sequencing within a time block.
-- Unlock the next habit after the previous habit is resolved.
-- Keep sequencing optional rather than applying it to every habit.
-- Make habit reordering update the visible lock sequence without stale dependencies.
+The useful part of this feature moved into v12.0.0 as optional locking between steps inside each routine. Separate habit-to-habit locking and time-block dependencies are no longer planned.
 
-## Deferred backlog
+## Next validation work
 
-- Optional Habit Timer
-- Weekly Tasks
-- One-Time Tasks
-- More scheduling frequencies
-- Pause / Resume convenience control on the Today card
-- Additional automatic backup and export convenience
-- Expanded statistics, while keeping the interface simple and focused on skipped items
+- Test migration using the current production data backup.
+- Test locked and free-order routines on iPhone.
+- Test duplicate step names and step reordering.
+- Test Office → WFH Today-only switching and automatic next-day reset.
+- Confirm End-of-Day and Review Skipped behavior with partially skipped routines.
+- Confirm legacy v11 backup import and v12 backup restore.
 
-Items in the deferred backlog do not have release numbers yet. Their order will be chosen after v11.2 based on how the app is being used.
+## Future major milestone
+
+### Household accounts and sharing
+
+- Separate accounts for the user and spouse.
+- Private and shared routines.
+- Share an entire routine or selected household tasks.
+- Support household completion and individual completion.
+- Add secure cloud synchronization while keeping offline PWA behavior.
+
+## Deferred ideas
+
+- Optional step timer
+- Weekly tasks beyond selected weekdays
+- One-time tasks
+- Additional automatic backup/export convenience
+- Expanded statistics while keeping the interface simple
+
+Deferred items remain unnumbered until v12.0.0 is validated through normal daily use.
