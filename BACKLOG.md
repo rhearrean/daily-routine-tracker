@@ -4,7 +4,7 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
-### v12.0.1 — Routine-First Redesign
+### v12.0.2 — Routine-First Redesign
 
 - Replace clock-based time blocks with manually ordered routines.
 - Give each routine its own weekday schedule.
@@ -20,6 +20,8 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 - Replace the Today-only time-block switch with a Today-only routine replacement, such as Office → WFH.
 - Preserve Pause / Resume confirmations, snoozing, End-of-Day, skipped review, stats, recovery snapshots, backup-gated updates, and import/export.
 - Keep skipped details closed until explicitly opened and use correct singular/plural step labels.
+- Use compact step rows with a visible checkbox, a small Skip button, and no separate Undo button.
+- Use real line breaks in Pause, Resume, and Delete confirmations.
 - Migrate v11 habits, occurrences, checklist steps, history, and settings without deleting the original v11 data.
 - Keep historical v11 repeat information inside the untouched legacy data and v12 backup archive.
 

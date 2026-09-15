@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.0.1",
-  build:"2026.09.15.routine-first-redesign-qa",
+  version:"12.0.2",
+  build:"2026.09.15.compact-step-controls",
   schemaVersion:8,
   releaseDate:"September 15, 2026",
   releaseNotes:[
@@ -10,7 +10,10 @@ const APP_META={
     "Optional step locking requires completing or skipping the active step before the next unlocks.",
     "Retires repeat counters; repeated actions are added as separate ordered steps.",
     "Migrates existing habits, steps, progress, pause settings, and history without deleting the v11 data.",
-    "Replaces the Today-only time-block switch with a Today-only routine switch."
+    "Replaces the Today-only time-block switch with a Today-only routine switch.",
+    "Makes steps compact with a visible checkbox and small Skip control.",
+    "Tapping a completed checkbox clears that step without a separate Undo button.",
+    "Fixes confirmation dialogs so their explanatory text appears on a new line."
   ]
 };
 
@@ -405,19 +408,24 @@ function renderStepRow(routine,step,index,dateKey){
   const canUndo=state!=="pending"&&(!routine.lockSteps||index===lastResolved);
   const row=document.createElement("div");
   row.className="routine-step-row "+state+(locked?" locked":"");
-  const icon=state==="done"?"✓":state==="skipped"?"—":locked?"🔒":String(index+1);
+  const checkEnabled=(state==="pending"&&!locked)||(state==="done"&&canUndo);
+  const skipEnabled=(state==="pending"&&!locked)||(state==="skipped"&&canUndo);
+  const checkIcon=state==="done"?"✓":state==="skipped"?"—":locked?"🔒":"";
+  const checkLabel=state==="done"?"Uncheck "+step.text:state==="pending"&&!locked?"Complete "+step.text:state==="skipped"?"Skipped "+step.text:"Locked "+step.text;
   row.innerHTML=
-    '<button class="routine-step-main" type="button" '+(state!=="pending"||locked?"disabled":"")+' aria-label="Complete '+escapeHtml(step.text)+'">'+
-      '<span class="routine-step-icon">'+icon+'</span><span class="routine-step-text">'+escapeHtml(step.text)+'</span>'+
-    '</button>'+
-    '<div class="routine-step-controls">'+
-      (state==="pending"&&!locked?'<button class="small-btn step-skip-btn" type="button">Skip</button>':"")+
-      (canUndo?'<button class="small-btn step-undo-btn" type="button">Undo</button>':"")+
-    '</div>';
-  const main=row.querySelector(".routine-step-main");
-  if(state==="pending"&&!locked)main.addEventListener("click",()=>setStepStatus(routine,step.id,"done"));
-  row.querySelector(".step-skip-btn")?.addEventListener("click",()=>setStepStatus(routine,step.id,"skipped"));
-  row.querySelector(".step-undo-btn")?.addEventListener("click",()=>setStepStatus(routine,step.id,"pending"));
+    '<button class="routine-step-check" type="button" '+(checkEnabled?"":"disabled")+' aria-label="'+escapeHtml(checkLabel)+'"><span aria-hidden="true">'+checkIcon+'</span></button>'+
+    '<div class="routine-step-copy"><span class="routine-step-number">'+String(index+1)+'.</span><span class="routine-step-text">'+escapeHtml(step.text)+'</span></div>'+
+    ((state==="pending"&&!locked)||state==="skipped"
+      ?'<button class="step-skip-btn '+(state==="skipped"?"active":"")+'" type="button" '+(skipEnabled?"":"disabled")+' aria-label="'+(state==="skipped"?"Clear skipped ":"Skip ")+escapeHtml(step.text)+'">Skip</button>'
+      :'<span class="routine-step-control-spacer" aria-hidden="true"></span>');
+  row.querySelector(".routine-step-check").addEventListener("click",()=>{
+    if(state==="pending")setStepStatus(routine,step.id,"done");
+    else if(state==="done"&&canUndo)setStepStatus(routine,step.id,"pending");
+  });
+  row.querySelector(".step-skip-btn")?.addEventListener("click",()=>{
+    if(state==="pending")setStepStatus(routine,step.id,"skipped");
+    else if(state==="skipped"&&canUndo)setStepStatus(routine,step.id,"pending");
+  });
   return row;
 }
 function renderRoutineList(){
@@ -567,7 +575,7 @@ function pauseRoutine(id){
   const index=routines.findIndex(routine=>routine.id===id);
   if(index<0)return;
   const routine=routines[index];
-  if(!confirm('Pause "'+routine.name+'"?\\n\\nIt will be hidden from Today until you resume it.'))return;
+  if(!confirm('Pause "'+routine.name+'"?\n\nIt will be hidden from Today until you resume it.'))return;
   const periods=routine.pausePeriods.map(period=>({...period}));
   if(!periods.some(period=>!period.end))periods.push({start:getTodayKey(),end:""});
   routines[index]={...routine,paused:true,pausePeriods:periods,snoozeUntil:""};
@@ -579,7 +587,7 @@ function resumeRoutine(id){
   const index=routines.findIndex(routine=>routine.id===id);
   if(index<0)return;
   const routine=routines[index];
-  if(!confirm('Resume "'+routine.name+'"?\\n\\nIt will return on its scheduled days.'))return;
+  if(!confirm('Resume "'+routine.name+'"?\n\nIt will return on its scheduled days.'))return;
   const periods=routine.pausePeriods.map(period=>period.end?period:{...period,end:getTodayKey()});
   routines[index]={...routine,paused:false,pausePeriods:periods,snoozeUntil:""};
   saveRoutines(routines);
@@ -587,7 +595,7 @@ function resumeRoutine(id){
 }
 function deleteRoutine(id){
   const routine=loadRoutines().find(item=>item.id===id);
-  if(!routine||!confirm('Delete "'+routine.name+'"?\\n\\nIts routine history will also be removed.'))return;
+  if(!routine||!confirm('Delete "'+routine.name+'"?\n\nIts routine history will also be removed.'))return;
   saveRoutines(loadRoutines().filter(item=>item.id!==id));
   const progress=loadProgress();
   const states=loadStepState();
@@ -645,7 +653,7 @@ function applyTodayRoutineSwitch(){
   const from=all.find(routine=>routine.id===fromRoutineId);
   const to=all.find(routine=>routine.id===toRoutineId);
   if(!from||!to||from.id===to.id)return;
-  if(!confirm('Use "'+to.name+'" instead of "'+from.name+'" for Today only?\\n\\nYour normal schedule returns tomorrow.'))return;
+  if(!confirm('Use "'+to.name+'" instead of "'+from.name+'" for Today only?\n\nYour normal schedule returns tomorrow.'))return;
   saveSettings({...loadSettings(),todayRoutineSwitch:{date:getTodayKey(),fromRoutineId,toRoutineId}});
   manuallyCollapsed={};
   endOfDayRoutineExpanded=false;
