@@ -1,5 +1,5 @@
 const APP_META={
-  version:"12.0.2",
+  version:"12.0.3",
   build:"2026.09.15.compact-step-controls",
   schemaVersion:8,
   releaseDate:"September 15, 2026",

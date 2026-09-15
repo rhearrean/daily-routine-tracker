@@ -4,7 +4,7 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
-### v12.0.2 — Routine-First Redesign
+### v12.0.3 — Routine-First Redesign
 
 - Replace clock-based time blocks with manually ordered routines.
 - Give each routine its own weekday schedule.

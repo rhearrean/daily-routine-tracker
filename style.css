@@ -986,7 +986,7 @@
 .routine-card-body{display:grid;gap:8px;padding:0 10px 12px}
 .routine-card.collapsed .routine-card-body{display:none}
 .routine-step-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:42px;padding:5px 7px;border:1px solid var(--border);border-radius:13px;background:rgba(15,23,42,.38)}
-.routine-step-check{display:grid;place-items:center;width:30px;height:30px;padding:0;border:2px solid var(--muted);border-radius:9px;background:transparent;color:#052e16;font-size:1rem;font-weight:900}
+.routine-step-check{display:grid;place-items:center;width:30px;height:30px;min-height:30px;padding:0;border:2px solid var(--muted);border-radius:9px;background:transparent;color:#052e16;font-size:1rem;font-weight:900}
 .routine-step-check:disabled{opacity:1}
 .routine-step-copy{display:flex;align-items:baseline;gap:6px;min-width:0;padding:3px 0}
 .routine-step-number{flex:0 0 auto;color:var(--muted);font-size:.76rem;font-weight:800}
@@ -1020,7 +1020,7 @@
   .routine-order{width:28px;height:28px}
   .routine-card-body{gap:6px;padding:0 8px 9px}
   .routine-step-row{grid-template-columns:30px minmax(0,1fr) auto;gap:6px;padding:4px 6px}
-  .routine-step-check{width:28px;height:28px}
+  .routine-step-check{width:28px;height:28px;min-height:28px}
   .routine-step-text{font-size:.9rem}
   .step-skip-btn{min-width:40px;padding:5px 7px}
   .routine-step-control-spacer{width:40px}
