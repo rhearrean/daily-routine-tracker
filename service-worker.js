@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v12-0-4";
+const CACHE_NAME="daily-routine-v12-0-5";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"12.0.4",summary:"Adds Today-only replacement for repeated routine steps.",notes:["A completed step shows Replace when the same routine still has pending steps with that original name.","Enter one temporary task and every remaining pending match in that routine is replaced after confirmation.","Completed and skipped matches are left unchanged.","Replacement steps keep their original positions and locked-step sequence.","Temporary steps are marked Today and automatically return to their original names tomorrow.","Backups and recovery snapshots include an active Today-only replacement; no permanent routine or history data is cleared."]};
-const FILES_TO_CACHE=["./index.html?v=12.0.4","./style.css?v=12.0.4","./app.js?v=12.0.4","./manifest.json?v=12.0.4","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"12.0.5",summary:"Focuses Today on one routine at a time.",notes:["The first unresolved routine is expanded and active.","Later routines remain collapsed and visibly locked until the current routine is finished.","Completing or fully skipping the current routine collapses it and immediately unlocks and opens the next routine.","Completed routines can still be expanded afterward when a correction is needed.","Today-only duplicate step replacement from v12.0.4 remains included.","No routine, step, history, or schema data is cleared."]};
+const FILES_TO_CACHE=["./index.html?v=12.0.5","./style.css?v=12.0.5","./app.js?v=12.0.5","./manifest.json?v=12.0.5","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.0.4"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.0.5"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));

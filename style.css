@@ -977,7 +977,12 @@
 .routine-list{display:grid;gap:12px}
 .routine-card{overflow:hidden;border:1px solid var(--border);border-radius:19px;background:var(--card-soft)}
 .routine-card.completed-routine{border-color:rgba(134,239,172,.28);background:rgba(22,101,52,.09)}
+.routine-card.current-routine{border-color:rgba(147,197,253,.36);box-shadow:0 0 0 1px rgba(147,197,253,.08)}
+.routine-card.locked-routine{opacity:.62;background:rgba(15,23,42,.24)}
 .routine-card-header{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;padding:14px;border:0;background:transparent;color:var(--text);text-align:left}
+.routine-card-header:disabled{opacity:1;cursor:not-allowed}
+.current-routine .routine-card-header{cursor:default}
+.locked-routine .routine-order{background:rgba(148,163,184,.1);color:var(--muted);font-size:.72rem}
 .routine-order{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:rgba(147,197,253,.12);color:var(--skip);font-size:.82rem;font-weight:900}
 .routine-card-copy{display:grid;gap:4px;min-width:0}
 .routine-card-copy strong{font-size:1rem;line-height:1.25}

@@ -35,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,visibleStepsForDate,pendingMatchingSteps,applyTodayStepReplacement};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,visibleStepsForDate,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -138,11 +138,14 @@ const routineSet=[
 ];
 api.saveRoutines(routineSet);
 api.saveSettings({todayRoutineSwitch:{date:todayKey,fromRoutineId:"office",toRoutineId:"wfh"}});
-assert.deepEqual(JSON.parse(JSON.stringify(api.dueRoutinesOn(today).map(routine=>routine.name))),["Morning","WFH","Evening"]);
+const switchedDue=api.dueRoutinesOn(today);
+assert.deepEqual(JSON.parse(JSON.stringify(switchedDue.map(routine=>routine.name))),["Morning","WFH","Evening"]);
+assert.equal(api.currentRoutineForDate(switchedDue,todayKey).name,"Morning");
 
 localStorage.setItem("dailyRoutineProgress.v12",JSON.stringify({
   [todayKey]:{morning:{state:"done",completedAt:""}}
 }));
+assert.equal(api.currentRoutineForDate(api.dueRoutinesOn(today),todayKey).name,"WFH","Finishing the first routine should activate the next due routine");
 const completedRoutine=api.normalizeRoutine({
   id:"morning",name:"Morning",schedule:"daily",steps:[
     {id:"old",text:"Old step",createdAt:""},

@@ -4,7 +4,7 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
-### v12.0.4 — Routine-First Redesign
+### v12.0.5 — Routine-First Redesign
 
 - Replace clock-based time blocks with manually ordered routines.
 - Give each routine its own weekday schedule.
@@ -24,6 +24,8 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 - Use real line breaks in Pause, Resume, and Delete confirmations.
 - Allow a completed duplicate step to replace every remaining pending match in its routine for Today only.
 - Restore the original step names automatically the following day.
+- Keep the first unresolved routine expanded while later routines remain collapsed and locked.
+- Collapse a completed routine and automatically unlock and open the next routine.
 - Migrate v11 habits, occurrences, checklist steps, history, and settings without deleting the original v11 data.
 - Keep historical v11 repeat information inside the untouched legacy data and v12 backup archive.
 

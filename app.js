@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.0.4",
-  build:"2026.09.15.today-only-step-replacement",
+  version:"12.0.5",
+  build:"2026.09.15.sequential-routine-focus",
   schemaVersion:8,
   releaseDate:"September 15, 2026",
   releaseNotes:[
@@ -15,7 +15,9 @@ const APP_META={
     "Tapping a completed checkbox clears that step without a separate Undo button.",
     "Fixes confirmation dialogs so their explanatory text appears on a new line.",
     "Lets a completed duplicate step replace every remaining pending match for today only.",
-    "Temporary replacement names return to their original names the next day."
+    "Temporary replacement names return to their original names the next day.",
+    "Keeps only the first unresolved routine open and locks later routines until it is finished.",
+    "Completing a routine collapses it and automatically opens the next routine."
   ]
 };
 
@@ -384,6 +386,7 @@ function setStepStatus(routine,stepId,status){
   else all[dateKey][routine.id][stepId]=status;
   saveStepState(all);
   syncRoutineProgress(routine,dateKey);
+  manuallyCollapsed[routine.id]=isRoutineResolved(dateKey,routine.id);
   render();
 }
 function pendingMatchingSteps(routine,sourceStepId,dateKey=getTodayKey()){
@@ -433,6 +436,7 @@ function clearRoutineForToday(routineId){
   saveProgress(progress);
   saveStepState(states);
   saveStepOverrides(overrides);
+  manuallyCollapsed[routineId]=false;
   render();
 }
 function getDayProgress(date=new Date()){
@@ -444,6 +448,9 @@ function getDayProgress(date=new Date()){
   let skippedSteps=0;
   due.forEach(routine=>{skippedSteps+=stepSummary(routine,dateKey).skipped});
   return{due,total:due.length,completed,skipped,resolved,skippedSteps,percent:due.length?Math.round(resolved/due.length*100):0};
+}
+function currentRoutineForDate(routines,dateKey){
+  return routines.find(routine=>!isRoutineResolved(dateKey,routine.id))||null;
 }
 
 function formatDateLabel(){
@@ -497,6 +504,7 @@ function renderStepRow(routine,step,index,dateKey){
 function renderRoutineList(){
   const dateKey=getTodayKey();
   const due=dueRoutinesOn(new Date());
+  const currentRoutine=currentRoutineForDate(due,dateKey);
   E.routineList.innerHTML="";
   E.emptyTodayText.classList.toggle("hidden",due.length>0);
   const day=getDayProgress();
@@ -506,22 +514,24 @@ function renderRoutineList(){
     const done=isRoutineDone(dateKey,routine.id);
     const skipped=isRoutineSkipped(dateKey,routine.id);
     const complete=done||skipped;
+    const isCurrent=Boolean(currentRoutine&&routine.id===currentRoutine.id);
+    const routineLocked=Boolean(currentRoutine&&!complete&&!isCurrent);
     const defaultCollapsed=complete&&loadSettings().autoCollapseCompletedRoutines!==false;
-    const collapsed=manuallyCollapsed[routine.id]===undefined?defaultCollapsed:manuallyCollapsed[routine.id];
+    const collapsed=routineLocked?true:isCurrent?false:manuallyCollapsed[routine.id]===undefined?defaultCollapsed:manuallyCollapsed[routine.id];
     const card=document.createElement("article");
-    card.className="routine-card "+(complete?"completed-routine ":"")+(collapsed?"collapsed":"");
-    const status=skipped?"Skipped":summary.resolved+"/"+summary.total+" steps"+(summary.skipped?" · "+summary.skipped+" skipped":"");
+    card.className="routine-card "+(complete?"completed-routine ":"")+(isCurrent?"current-routine ":"")+(routineLocked?"locked-routine ":"")+(collapsed?"collapsed":"");
+    const status=routineLocked?"Locked · Finish "+currentRoutine.name+" first":skipped?"Skipped":summary.resolved+"/"+summary.total+" steps"+(summary.skipped?" · "+summary.skipped+" skipped":"");
     card.innerHTML=
-      '<button class="routine-card-header" type="button" aria-expanded="'+String(!collapsed)+'">'+
-        '<span class="routine-order">'+String(index+1)+'</span>'+
+      '<button class="routine-card-header" type="button" aria-expanded="'+String(!collapsed)+'" '+(routineLocked?'disabled aria-label="Locked routine '+escapeHtml(routine.name)+'"':isCurrent?'aria-disabled="true"':"")+'>'+
+        '<span class="routine-order">'+(routineLocked?"🔒":String(index+1))+'</span>'+
         '<span class="routine-card-copy"><strong>'+escapeHtml(routine.name)+(complete?" ✓":"")+'</strong><small>'+escapeHtml(status)+(routine.lockSteps?" · In order":" · Any order")+'</small></span>'+
         '<span class="routine-chevron">'+(collapsed?"▶":"▼")+'</span>'+
       '</button>'+
       '<div class="routine-card-body"></div>';
-    card.querySelector(".routine-card-header").addEventListener("click",()=>{
-      manuallyCollapsed[routine.id]=!collapsed;
-      render();
-    });
+    if(complete)card.querySelector(".routine-card-header").addEventListener("click",()=>{
+        manuallyCollapsed[routine.id]=!collapsed;
+        render();
+      });
     const body=card.querySelector(".routine-card-body");
     if(skipped){
       body.innerHTML='<p class="helper-text">This routine was skipped before the v12 migration.</p><button class="small-btn clear-routine-btn" type="button">Clear Skipped Routine</button>';
