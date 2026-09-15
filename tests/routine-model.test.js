@@ -27,6 +27,7 @@ const sandbox={
   URL:{createObjectURL(){return""},revokeObjectURL(){}},
   FileReader:class{},
   confirm:()=>true,
+  prompt:()=>null,
   alert:()=>{},
   setTimeout:()=>0,
   clearTimeout:()=>{},
@@ -34,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,visibleStepsForDate};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,visibleStepsForDate,pendingMatchingSteps,applyTodayStepReplacement};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -80,6 +81,36 @@ const locked=api.normalizeRoutine({
 api.saveRoutines([locked]);
 const today=new Date();
 const todayKey=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
+
+const repeatRoutine=api.normalizeRoutine({
+  id:"cleanup",name:"Cleanup",schedule:"daily",lockSteps:true,
+  steps:[
+    {id:"dishes-1",text:"Dishes",createdAt:""},
+    {id:"dishes-skipped",text:"Dishes",createdAt:""},
+    {id:"middle",text:"Feed baby",createdAt:""},
+    {id:"dishes-2",text:"Dishes",createdAt:""},
+    {id:"dishes-3",text:"Dishes",createdAt:""}
+  ]
+});
+api.saveRoutines([repeatRoutine]);
+api.setStepStatus(repeatRoutine,"dishes-1","done");
+api.setStepStatus(repeatRoutine,"dishes-skipped","skipped");
+assert.equal(api.pendingMatchingSteps(repeatRoutine,"dishes-1",todayKey).length,2);
+assert.equal(api.applyTodayStepReplacement(repeatRoutine,"dishes-1","Clean bathroom counter",todayKey),2);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(api.visibleStepsForDate(repeatRoutine,todayKey).map(step=>step.text))),
+  ["Dishes","Dishes","Feed baby","Clean bathroom counter","Clean bathroom counter"]
+);
+assert.equal(api.getStepState(todayKey,"cleanup","dishes-skipped"),"skipped","A skipped matching step must remain unchanged");
+assert.equal(api.getStepState(todayKey,"cleanup","dishes-2"),"pending","Replacement must not resolve or skip a matching step");
+const tomorrow=new Date(today);
+tomorrow.setDate(tomorrow.getDate()+1);
+const tomorrowKey=tomorrow.getFullYear()+"-"+String(tomorrow.getMonth()+1).padStart(2,"0")+"-"+String(tomorrow.getDate()).padStart(2,"0");
+assert.deepEqual(
+  JSON.parse(JSON.stringify(api.visibleStepsForDate(repeatRoutine,tomorrowKey).map(step=>step.text))),
+  ["Dishes","Dishes","Feed baby","Dishes","Dishes"],
+  "Temporary replacement names must not carry into the next day"
+);
 
 api.setStepStatus(locked,"two","done");
 assert.equal(api.getStepState(todayKey,"locked","two"),"pending","A later locked step cannot complete early");

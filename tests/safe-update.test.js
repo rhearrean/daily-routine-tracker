@@ -10,11 +10,12 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.0\.3"/);
+assert.match(app,/version:"12\.0\.4"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
 assert.match(app,/const STEP_STATE_KEY="dailyRoutineStepState\.v12"/);
+assert.match(app,/const STEP_OVERRIDE_KEY="dailyRoutineStepOverrides\.v12"/);
 assert.match(app,/function migrateLegacyData\(\)/);
 assert.match(app,/localStorage\.getItem\(ROUTINES_KEY\)!==null/);
 assert.match(app,/LEGACY_HABITS_KEY/);
@@ -46,6 +47,13 @@ assert.doesNotMatch(app,/\\\\n\\\\n/);
 assert.match(app,/class="routine-step-check/);
 assert.match(app,/class="step-skip-btn/);
 assert.doesNotMatch(app,/step-undo-btn/);
+assert.match(app,/function pendingMatchingSteps/);
+assert.match(app,/function applyTodayStepReplacement/);
+assert.match(app,/function replaceRemainingStepsForToday/);
+assert.match(app,/class="step-replace-btn/);
+assert.match(app,/temporary-step-pill/);
+assert.match(app,/stepOverrides:loadStepOverrides\(\)/);
+assert.match(app,/clearExpiredStepOverrides\(\)/);
 assert.match(app,/function createRecoverySnapshot/);
 assert.match(app,/function importBackupPayload/);
 assert.match(app,/Array\.isArray\(parsed\.routines\)/);
@@ -72,15 +80,15 @@ assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.0\\.3"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.0\\.4"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-0-3"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.0\.3"/);
-assert.match(worker,/visible checkbox on the left/);
-assert.match(worker,/small Skip button on the right/);
-assert.match(worker,/separate Undo button is removed/);
-assert.match(worker,/No routine, step, history, or schema data is cleared/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-0-4"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.0\.4"/);
+assert.match(worker,/every remaining pending match/);
+assert.match(worker,/Completed and skipped matches are left unchanged/);
+assert.match(worker,/automatically return to their original names tomorrow/);
+assert.match(worker,/no permanent routine or history data is cleared/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -96,13 +104,15 @@ assert.match(style,/\.routine-step-row\.skipped/);
 assert.match(style,/\.routine-step-check\{/);
 assert.match(style,/min-height:30px/);
 assert.match(style,/\.step-skip-btn\{/);
+assert.match(style,/\.step-replace-btn\{/);
+assert.match(style,/\.temporary-step-pill\{/);
 assert.doesNotMatch(style,/\.step-undo-btn/);
 assert.match(style,/\.skip-review-details\.hidden\{display:none\}/);
 assert.match(style,/max-height:calc\(100dvh - 36px\)/);
 assert.match(style,/overflow-y:auto/);
 
-assert.match(backlog,/v12\.0\.3 — Routine-First Redesign/);
+assert.match(backlog,/v12\.0\.4 — Routine-First Redesign/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and routine-first assertions passed for v12.0.3");
+console.log("Safe update and routine-first assertions passed for v12.0.4");

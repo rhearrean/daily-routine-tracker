@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.0.3",
-  build:"2026.09.15.compact-step-controls",
+  version:"12.0.4",
+  build:"2026.09.15.today-only-step-replacement",
   schemaVersion:8,
   releaseDate:"September 15, 2026",
   releaseNotes:[
@@ -13,13 +13,16 @@ const APP_META={
     "Replaces the Today-only time-block switch with a Today-only routine switch.",
     "Makes steps compact with a visible checkbox and small Skip control.",
     "Tapping a completed checkbox clears that step without a separate Undo button.",
-    "Fixes confirmation dialogs so their explanatory text appears on a new line."
+    "Fixes confirmation dialogs so their explanatory text appears on a new line.",
+    "Lets a completed duplicate step replace every remaining pending match for today only.",
+    "Temporary replacement names return to their original names the next day."
   ]
 };
 
 const ROUTINES_KEY="dailyRoutineRoutines.v12";
 const PROGRESS_KEY="dailyRoutineProgress.v12";
 const STEP_STATE_KEY="dailyRoutineStepState.v12";
+const STEP_OVERRIDE_KEY="dailyRoutineStepOverrides.v12";
 const SETTINGS_KEY="dailyRoutineSettings.v12";
 const LEGACY_HABITS_KEY="dailyRoutineHabits.v10_1";
 const LEGACY_COMPLETIONS_KEY="dailyRoutineCompletions.v10_1";
@@ -145,6 +148,17 @@ function loadStepState(){return rawLocal(STEP_STATE_KEY,{})}
 function saveStepState(state){
   localStorage.setItem(STEP_STATE_KEY,JSON.stringify(state));
   scheduleRecoverySnapshot("step progress changed");
+}
+function loadStepOverrides(){return rawLocal(STEP_OVERRIDE_KEY,{})}
+function saveStepOverrides(overrides){
+  localStorage.setItem(STEP_OVERRIDE_KEY,JSON.stringify(overrides));
+  scheduleRecoverySnapshot("temporary steps changed");
+}
+function clearExpiredStepOverrides(){
+  const all=loadStepOverrides();
+  const dateKey=getTodayKey();
+  const current=all[dateKey]&&typeof all[dateKey]==="object"?{[dateKey]:all[dateKey]}:{};
+  if(JSON.stringify(all)!==JSON.stringify(current))localStorage.setItem(STEP_OVERRIDE_KEY,JSON.stringify(current));
 }
 function normalizeLegacyCompletion(entry){
   if(entry===true)return{state:"done",completedAt:""};
@@ -295,11 +309,21 @@ function getStepState(dateKey,routineId,stepId){
   const value=loadStepState()[dateKey]&&loadStepState()[dateKey][routineId]&&loadStepState()[dateKey][routineId][stepId];
   return value===true?"done":value||"pending";
 }
+function applyStepOverrides(routine,steps,dateKey){
+  const overrides=loadStepOverrides()[dateKey]&&loadStepOverrides()[dateKey][routine.id]||{};
+  return steps.map(step=>{
+    const replacement=typeof overrides[step.id]==="string"?overrides[step.id].trim():"";
+    return replacement?{...step,originalText:step.text,text:replacement,temporary:true}:step;
+  });
+}
 function visibleStepsForDate(routine,dateKey){
   const entry=progressEntry(dateKey,routine.id);
-  if(!entry||entry.state!=="done")return routine.steps;
-  if(!entry.completedAt)return routine.steps.filter(step=>!step.createdAt);
-  return routine.steps.filter(step=>!step.createdAt||step.createdAt<=entry.completedAt);
+  let steps=routine.steps;
+  if(entry&&entry.state==="done"){
+    if(!entry.completedAt)steps=routine.steps.filter(step=>!step.createdAt);
+    else steps=routine.steps.filter(step=>!step.createdAt||step.createdAt<=entry.completedAt);
+  }
+  return applyStepOverrides(routine,steps,dateKey);
 }
 function stepSummary(routine,dateKey){
   const steps=visibleStepsForDate(routine,dateKey);
@@ -362,14 +386,53 @@ function setStepStatus(routine,stepId,status){
   syncRoutineProgress(routine,dateKey);
   render();
 }
+function pendingMatchingSteps(routine,sourceStepId,dateKey=getTodayKey()){
+  const source=routine.steps.find(step=>step.id===sourceStepId);
+  if(!source||getStepState(dateKey,routine.id,sourceStepId)!=="done")return[];
+  const sourceName=source.text.trim().toLocaleLowerCase();
+  const visibleIds=new Set(visibleStepsForDate(routine,dateKey).map(step=>step.id));
+  return routine.steps.filter(step=>
+    step.id!==sourceStepId&&visibleIds.has(step.id)&&step.text.trim().toLocaleLowerCase()===sourceName&&getStepState(dateKey,routine.id,step.id)==="pending"
+  );
+}
+function applyTodayStepReplacement(routine,sourceStepId,replacementText,dateKey=getTodayKey()){
+  const text=String(replacementText||"").trim();
+  if(!text)return 0;
+  const matches=pendingMatchingSteps(routine,sourceStepId,dateKey);
+  if(!matches.length)return 0;
+  const all=loadStepOverrides();
+  all[dateKey]=all[dateKey]||{};
+  all[dateKey][routine.id]=all[dateKey][routine.id]||{};
+  matches.forEach(step=>all[dateKey][routine.id][step.id]=text);
+  saveStepOverrides(all);
+  return matches.length;
+}
+function replaceRemainingStepsForToday(routine,sourceStepId){
+  const source=routine.steps.find(step=>step.id===sourceStepId);
+  const matches=pendingMatchingSteps(routine,sourceStepId);
+  if(!source||!matches.length)return;
+  const replacement=prompt('Replace the remaining "'+source.text+'" steps with what for today?');
+  if(replacement===null)return;
+  const text=replacement.trim();
+  if(!text){alert("Enter a replacement step first.");return}
+  if(text.toLocaleLowerCase()===source.text.trim().toLocaleLowerCase()){alert("Choose a different replacement step.");return}
+  const count=matches.length;
+  const label=count===1?"step":"steps";
+  if(!confirm('Replace '+count+' remaining "'+source.text+'" '+label+' with "'+text+'" for today only?\n\nThe original '+label+' will return tomorrow.'))return;
+  if(applyTodayStepReplacement(routine,sourceStepId,text)!==count)return;
+  render();
+}
 function clearRoutineForToday(routineId){
   const dateKey=getTodayKey();
   const progress=loadProgress();
   const states=loadStepState();
   if(progress[dateKey])delete progress[dateKey][routineId];
   if(states[dateKey])delete states[dateKey][routineId];
+  const overrides=loadStepOverrides();
+  if(overrides[dateKey])delete overrides[dateKey][routineId];
   saveProgress(progress);
   saveStepState(states);
+  saveStepOverrides(overrides);
   render();
 }
 function getDayProgress(date=new Date()){
@@ -412,11 +475,13 @@ function renderStepRow(routine,step,index,dateKey){
   const skipEnabled=(state==="pending"&&!locked)||(state==="skipped"&&canUndo);
   const checkIcon=state==="done"?"✓":state==="skipped"?"—":locked?"🔒":"";
   const checkLabel=state==="done"?"Uncheck "+step.text:state==="pending"&&!locked?"Complete "+step.text:state==="skipped"?"Skipped "+step.text:"Locked "+step.text;
+  const replaceCount=state==="done"&&!step.temporary?pendingMatchingSteps(routine,step.id,dateKey).length:0;
   row.innerHTML=
     '<button class="routine-step-check" type="button" '+(checkEnabled?"":"disabled")+' aria-label="'+escapeHtml(checkLabel)+'"><span aria-hidden="true">'+checkIcon+'</span></button>'+
-    '<div class="routine-step-copy"><span class="routine-step-number">'+String(index+1)+'.</span><span class="routine-step-text">'+escapeHtml(step.text)+'</span></div>'+
+    '<div class="routine-step-copy"><span class="routine-step-number">'+String(index+1)+'.</span><span class="routine-step-text">'+escapeHtml(step.text)+'</span>'+(step.temporary?'<span class="temporary-step-pill">Today</span>':"")+'</div>'+
     ((state==="pending"&&!locked)||state==="skipped"
       ?'<button class="step-skip-btn '+(state==="skipped"?"active":"")+'" type="button" '+(skipEnabled?"":"disabled")+' aria-label="'+(state==="skipped"?"Clear skipped ":"Skip ")+escapeHtml(step.text)+'">Skip</button>'
+      :replaceCount?'<button class="step-replace-btn" type="button" aria-label="Replace '+replaceCount+' remaining '+escapeHtml(step.text)+' '+(replaceCount===1?'step':'steps')+' for today">Replace</button>'
       :'<span class="routine-step-control-spacer" aria-hidden="true"></span>');
   row.querySelector(".routine-step-check").addEventListener("click",()=>{
     if(state==="pending")setStepStatus(routine,step.id,"done");
@@ -426,6 +491,7 @@ function renderStepRow(routine,step,index,dateKey){
     if(state==="pending")setStepStatus(routine,step.id,"skipped");
     else if(state==="skipped"&&canUndo)setStepStatus(routine,step.id,"pending");
   });
+  row.querySelector(".step-replace-btn")?.addEventListener("click",()=>replaceRemainingStepsForToday(routine,step.id));
   return row;
 }
 function renderRoutineList(){
@@ -599,10 +665,13 @@ function deleteRoutine(id){
   saveRoutines(loadRoutines().filter(item=>item.id!==id));
   const progress=loadProgress();
   const states=loadStepState();
+  const overrides=loadStepOverrides();
   Object.keys(progress).forEach(dateKey=>{if(progress[dateKey])delete progress[dateKey][id]});
   Object.keys(states).forEach(dateKey=>{if(states[dateKey])delete states[dateKey][id]});
+  Object.keys(overrides).forEach(dateKey=>{if(overrides[dateKey])delete overrides[dateKey][id]});
   saveProgress(progress);
   saveStepState(states);
+  saveStepOverrides(overrides);
   render();
 }
 function renderAllRoutines(){
@@ -767,14 +836,17 @@ function saveRoutineFromForm(event){
 function openPanel(panel){panel.classList.remove("hidden");document.body.style.overflow="hidden"}
 function closePanel(panel){panel.classList.add("hidden");document.body.style.overflow=""}
 function resetToday(){
-  if(!confirm("Reset all routine progress for today?"))return;
+  if(!confirm("Reset all routine progress and temporary step replacements for today?"))return;
   const dateKey=getTodayKey();
   const progress=loadProgress();
   const states=loadStepState();
+  const overrides=loadStepOverrides();
   delete progress[dateKey];
   delete states[dateKey];
+  delete overrides[dateKey];
   saveProgress(progress);
   saveStepState(states);
+  saveStepOverrides(overrides);
   manuallyCollapsed={};
   skipReviewExpanded=false;
   endOfDayRoutineExpanded=false;
@@ -799,6 +871,7 @@ function makeBackupPayload(){
     routines:loadRoutines(),
     routineProgress:loadProgress(),
     stepState:loadStepState(),
+    stepOverrides:loadStepOverrides(),
     settings:loadSettings(),
     legacyArchive:legacyArchive()
   };
@@ -809,6 +882,7 @@ function importBackupPayload(parsed){
     localStorage.setItem(ROUTINES_KEY,JSON.stringify(sortRoutines(parsed.routines)));
     localStorage.setItem(PROGRESS_KEY,JSON.stringify(parsed.routineProgress&&typeof parsed.routineProgress==="object"?parsed.routineProgress:{}));
     localStorage.setItem(STEP_STATE_KEY,JSON.stringify(parsed.stepState&&typeof parsed.stepState==="object"?parsed.stepState:{}));
+    localStorage.setItem(STEP_OVERRIDE_KEY,JSON.stringify(parsed.stepOverrides&&typeof parsed.stepOverrides==="object"?parsed.stepOverrides:{}));
     localStorage.setItem(SETTINGS_KEY,JSON.stringify(parsed.settings&&typeof parsed.settings==="object"?parsed.settings:{}));
   }else if(Array.isArray(parsed.habits)){
     localStorage.setItem(LEGACY_HABITS_KEY,JSON.stringify(parsed.habits));
@@ -819,9 +893,11 @@ function importBackupPayload(parsed){
     localStorage.removeItem(ROUTINES_KEY);
     localStorage.removeItem(PROGRESS_KEY);
     localStorage.removeItem(STEP_STATE_KEY);
+    localStorage.removeItem(STEP_OVERRIDE_KEY);
     localStorage.removeItem(SETTINGS_KEY);
     migrateLegacyData();
   }else throw new Error("Backup is missing routines or legacy habits.");
+  clearExpiredStepOverrides();
   manuallyCollapsed={};
   resetRoutineForm();
   render();
@@ -1071,6 +1147,7 @@ function wireEvents(){
 
 migrateLegacyData();
 clearExpiredTodayRoutineSwitch();
+clearExpiredStepOverrides();
 formatDateLabel();
 resetRoutineForm();
 wireEvents();
@@ -1081,6 +1158,7 @@ createRecoverySnapshot("app opened").catch(()=>E.recoveryStatus.textContent="Rec
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible"){
     clearExpiredTodayRoutineSwitch();
+    clearExpiredStepOverrides();
     formatDateLabel();
     render();
   }
