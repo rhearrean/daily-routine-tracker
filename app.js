@@ -1,8 +1,8 @@
 const APP_META={
-  version:"12.0.0",
-  build:"2026.09.14.routine-first-redesign",
+  version:"12.0.1",
+  build:"2026.09.15.routine-first-redesign-qa",
   schemaVersion:8,
-  releaseDate:"September 14, 2026",
+  releaseDate:"September 15, 2026",
   releaseNotes:[
     "Rebuilds Today around ordered routines instead of clock-based time blocks.",
     "Each routine contains ordered steps, including duplicate step names.",
@@ -608,8 +608,9 @@ function renderAllRoutines(){
     const inactive=routine.paused||isRoutineSnoozed(routine);
     const row=document.createElement("div");
     row.className="habit-row compact-habit-row "+(inactive?"snoozed-habit":"");
+    const stepCount=routine.steps.length+' '+(routine.steps.length===1?'step':'steps');
     row.innerHTML=
-      '<div class="habit-row-main"><div class="compact-habit-title"><strong>'+escapeHtml(routine.name)+'</strong>'+(inactive?'<span class="habit-status-pill">'+(routine.paused?"Paused":"Until "+snoozeLabel(routine))+'</span>':"")+'</div><small>#'+(index+1)+' · '+escapeHtml(scheduleLabel(routine))+' · '+routine.steps.length+' steps · '+(routine.lockSteps?"In order":"Any order")+'</small></div>'+
+      '<div class="habit-row-main"><div class="compact-habit-title"><strong>'+escapeHtml(routine.name)+'</strong>'+(inactive?'<span class="habit-status-pill">'+(routine.paused?"Paused":"Until "+snoozeLabel(routine))+'</span>':"")+'</div><small>#'+(index+1)+' · '+escapeHtml(scheduleLabel(routine))+' · '+stepCount+' · '+(routine.lockSteps?"In order":"Any order")+'</small></div>'+
       '<div class="habit-actions compact-habit-actions"><div class="reorder-actions"><button class="reorder-btn move-up-btn" type="button" '+(index===0?"disabled":"")+'>↑</button><button class="reorder-btn move-down-btn" type="button" '+(index===routines.length-1?"disabled":"")+'>↓</button></div><button class="small-btn pause-toggle-btn" type="button">'+(inactive?"Resume":"Pause")+'</button><button class="edit-btn" type="button">Edit</button><button class="danger-btn compact-delete-btn" type="button">✕</button></div>';
     row.querySelector(".move-up-btn").addEventListener("click",()=>moveRoutine(routine.id,-1));
     row.querySelector(".move-down-btn").addEventListener("click",()=>moveRoutine(routine.id,1));

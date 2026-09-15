@@ -10,7 +10,7 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.0\.0"/);
+assert.match(app,/version:"12\.0\.1"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
@@ -67,11 +67,11 @@ assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.0\\.0"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.0\\.1"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-0-0"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.0\.0"/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-0-1"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.0\.1"/);
 assert.match(worker,/ordered routines and steps/);
 assert.match(worker,/original v11 data remains stored/);
 assert.match(worker,/Repeat counters are retired/);
@@ -87,11 +87,12 @@ assert.match(style,/\.routine-list\{/);
 assert.match(style,/\.routine-card\{/);
 assert.match(style,/\.routine-step-row\.locked/);
 assert.match(style,/\.routine-step-row\.skipped/);
+assert.match(style,/\.skip-review-details\.hidden\{display:none\}/);
 assert.match(style,/max-height:calc\(100dvh - 36px\)/);
 assert.match(style,/overflow-y:auto/);
 
-assert.match(backlog,/v12\.0\.0 — Routine-First Redesign/);
+assert.match(backlog,/v12\.0\.1 — Routine-First Redesign/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and routine-first assertions passed for v12.0.0");
+console.log("Safe update and routine-first assertions passed for v12.0.1");

@@ -1008,6 +1008,7 @@
 .routine-step-reorder{display:flex;gap:5px}
 .routine-step-editor-row .remove-step-btn{width:38px;height:38px;padding:0}
 .skip-review-item{display:grid;gap:3px;padding:10px 0;border-top:1px solid var(--border)}
+.skip-review-details.hidden{display:none}
 .skip-review-item:first-child{border-top:0}
 .skip-review-item small{color:var(--muted)}
 .clear-routine-btn{justify-self:start}
