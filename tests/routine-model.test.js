@@ -35,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,visibleStepsForDate,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,visibleStepsForDate,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -67,6 +67,7 @@ assert.equal(routines[0].name,"Morning Routine");
 assert.equal(routines[0].lockSteps,true);
 assert.deepEqual(JSON.parse(JSON.stringify(routines[0].steps.map(step=>step.text))),["Drink water","Feed baby","Drink water"]);
 assert.equal(new Set(routines[0].steps.map(step=>step.id)).size,3);
+assert.equal(routines[0].steps.every(step=>step.days===null),true,"Existing steps must keep running on every routine day");
 assert.equal(api.loadProgress()["2026-09-13"].morning.state,"done");
 assert.equal(api.loadStepState()["2026-09-14"].morning["water-1"],"done","Partial legacy step state should migrate even without a completion entry");
 
@@ -128,6 +129,42 @@ assert.equal(api.isRoutineDone(todayKey,"locked"),true);
 
 assert.equal(api.scheduleMatches(api.normalizeRoutine({name:"Sat",schedule:"custom",days:[6],steps:[{text:"x"}]}),new Date(2026,8,12)),true);
 assert.equal(api.scheduleMatches(api.normalizeRoutine({name:"Sat",schedule:"custom",days:[6],steps:[{text:"x"}]}),new Date(2026,8,13)),false);
+
+const mondayKey="2026-09-14";
+const tuesdayKey="2026-09-15";
+const scheduledSteps=api.normalizeRoutine({
+  id:"scheduled",name:"Scheduled Steps",schedule:"daily",order:10,lockSteps:true,
+  steps:[
+    {id:"every",text:"Every routine day",createdAt:""},
+    {id:"duplicate-mon",text:"Duplicate",createdAt:"",days:[1]},
+    {id:"duplicate-tue",text:"Duplicate",createdAt:"",days:[2]}
+  ]
+});
+assert.deepEqual(JSON.parse(JSON.stringify(api.visibleStepsForDate(scheduledSteps,mondayKey).map(step=>step.id))),["every","duplicate-mon"]);
+assert.deepEqual(JSON.parse(JSON.stringify(api.visibleStepsForDate(scheduledSteps,tuesdayKey).map(step=>step.id))),["every","duplicate-tue"]);
+assert.equal(api.stepRunsOn(scheduledSteps.steps[1],mondayKey),true);
+assert.equal(api.stepRunsOn(scheduledSteps.steps[1],tuesdayKey),false);
+
+localStorage.clear();
+const onlyMonday=api.normalizeRoutine({id:"monday-only",name:"Monday Only",schedule:"daily",steps:[{id:"monday-step",text:"Monday",days:[1]}]});
+api.saveRoutines([onlyMonday]);
+assert.equal(api.dueRoutinesOn(new Date(2026,8,14,12)).length,1,"A routine is due when at least one step runs that day");
+assert.equal(api.dueRoutinesOn(new Date(2026,8,15,12)).length,0,"A routine with no steps today must not block Today");
+
+localStorage.clear();
+const currentDay=today.getDay();
+const anotherDay=(currentDay+1)%7;
+const hiddenLockStep=api.normalizeRoutine({
+  id:"hidden-lock",name:"Hidden Lock",schedule:"daily",lockSteps:true,
+  steps:[
+    {id:"hidden-first",text:"Not today",days:[anotherDay]},
+    {id:"visible-second",text:"Visible today",days:[currentDay]}
+  ]
+});
+api.saveRoutines([hiddenLockStep]);
+api.setStepStatus(hiddenLockStep,"visible-second","done");
+assert.equal(api.getStepState(todayKey,"hidden-lock","visible-second"),"done","A hidden earlier step must not keep today's visible step locked");
+assert.equal(api.isRoutineDone(todayKey,"hidden-lock"),true,"Hidden steps must not prevent today's routine completion");
 
 localStorage.clear();
 const routineSet=[

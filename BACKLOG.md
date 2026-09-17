@@ -4,6 +4,15 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.0.6 — Step Weekday Schedules
+
+- Let every step inherit all of its routine's scheduled days by default.
+- Allow an individual step to run only on selected weekdays.
+- Keep duplicate step names independently schedulable.
+- Hide steps that do not run today before applying step locks and completion rules.
+- Keep a routine out of Today when none of its steps run that day.
+- Preserve all existing step behavior, Today-only replacements, history, and schema 8 data.
+
 ### v12.0.5 — Routine-First Redesign
 
 - Replace clock-based time blocks with manually ordered routines.

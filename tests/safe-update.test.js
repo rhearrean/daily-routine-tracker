@@ -10,7 +10,7 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.0\.5"/);
+assert.match(app,/version:"12\.0\.6"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
@@ -31,6 +31,9 @@ assert.match(app,/function dueRoutinesOn/);
 assert.match(app,/todayRoutineSwitch/);
 assert.match(app,/fromRoutineId,toRoutineId/);
 assert.match(app,/function visibleStepsForDate/);
+assert.match(app,/function stepRunsOn/);
+assert.match(app,/steps\.filter\(step=>stepRunsOn\(step,dateKey\)\)/);
+assert.match(app,/days:days\.length\?days:null/);
 assert.match(app,/function firstPendingIndex/);
 assert.match(app,/function lastResolvedIndex/);
 assert.match(app,/if\(routine\.lockSteps&&index!==firstPendingIndex/);
@@ -80,21 +83,21 @@ assert.match(html,/id="autoCollapseRoutines"/);
 assert.match(html,/id="routineForm"/);
 assert.match(html,/id="lockSteps"/);
 assert.match(html,/Complete steps in order/);
-assert.match(html,/Duplicate step names are allowed/);
+assert.match(html,/Duplicate steps stay separate/);
+assert.match(html,/Each step can run every routine day or only on selected weekdays/);
 assert.doesNotMatch(html,/id="timeBlocks"/);
 assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.0\\.5"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.0\\.6"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-0-5"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.0\.5"/);
-assert.match(worker,/first unresolved routine is expanded and active/);
-assert.match(worker,/collapsed and visibly locked/);
-assert.match(worker,/immediately unlocks and opens the next routine/);
-assert.match(worker,/duplicate step replacement from v12\.0\.4 remains included/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-0-6"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.0\.6"/);
+assert.match(worker,/weekday schedules to individual routine steps/);
+assert.match(worker,/Steps not scheduled today stay hidden/);
+assert.match(worker,/Existing steps continue to run on every routine day/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -115,13 +118,15 @@ assert.match(style,/\.temporary-step-pill\{/);
 assert.match(style,/\.routine-card\.current-routine\{/);
 assert.match(style,/\.routine-card\.locked-routine\{/);
 assert.match(style,/\.routine-card-header:disabled\{/);
+assert.match(style,/\.step-schedule-editor\{/);
+assert.match(style,/\.step-day-buttons button\.selected\{/);
 assert.doesNotMatch(style,/\.step-undo-btn/);
 assert.match(style,/\.skip-review-details\.hidden\{display:none\}/);
 assert.match(style,/max-height:calc\(100dvh - 36px\)/);
 assert.match(style,/overflow-y:auto/);
 
-assert.match(backlog,/v12\.0\.5 — Routine-First Redesign/);
+assert.match(backlog,/v12\.0\.6 — Step Weekday Schedules/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and routine-first assertions passed for v12.0.5");
+console.log("Safe update and step weekday schedule assertions passed for v12.0.6");

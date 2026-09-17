@@ -1,8 +1,8 @@
 const APP_META={
-  version:"12.0.5",
-  build:"2026.09.15.sequential-routine-focus",
+  version:"12.0.6",
+  build:"2026.09.17.step-weekday-schedules",
   schemaVersion:8,
-  releaseDate:"September 15, 2026",
+  releaseDate:"September 17, 2026",
   releaseNotes:[
     "Rebuilds Today around ordered routines instead of clock-based time blocks.",
     "Each routine contains ordered steps, including duplicate step names.",
@@ -17,7 +17,10 @@ const APP_META={
     "Lets a completed duplicate step replace every remaining pending match for today only.",
     "Temporary replacement names return to their original names the next day.",
     "Keeps only the first unresolved routine open and locks later routines until it is finished.",
-    "Completing a routine collapses it and automatically opens the next routine."
+    "Completing a routine collapses it and automatically opens the next routine.",
+    "Lets each step run on every routine day or only on selected weekdays.",
+    "Steps not scheduled today stay hidden and do not block step locking or routine completion.",
+    "Keeps duplicate steps independently schedulable, even when their names match."
   ]
 };
 
@@ -98,11 +101,13 @@ function uniqueDays(days){
   return [...new Set((Array.isArray(days)?days:[]).map(Number).filter(day=>day>=0&&day<=6))].sort();
 }
 function normalizeStep(step,index=0){
-  if(typeof step==="string")return{id:makeId("step-"+index),text:step.trim(),createdAt:""};
+  if(typeof step==="string")return{id:makeId("step-"+index),text:step.trim(),createdAt:"",days:null};
+  const days=uniqueDays(step&&step.days);
   return{
     id:String(step&&step.id||makeId("step-"+index)),
     text:String(step&&step.text||"").trim(),
-    createdAt:String(step&&step.createdAt||"")
+    createdAt:String(step&&step.createdAt||""),
+    days:days.length?days:null
   };
 }
 function normalizeRoutine(routine,index=0){
@@ -301,7 +306,8 @@ function dueRoutinesOn(date=new Date()){
       due.push({...replacement,order:source.order,effectiveOrder:source.order});
     }
   }
-  return sortRoutines(due);
+  const dateKey=getLocalDateKey(date);
+  return sortRoutines(due).filter(routine=>visibleStepsForDate(routine,dateKey).length>0);
 }
 function progressEntry(dateKey,routineId){return loadProgress()[dateKey]&&loadProgress()[dateKey][routineId]||null}
 function isRoutineDone(dateKey,routineId){return progressEntry(dateKey,routineId)?.state==="done"}
@@ -318,6 +324,14 @@ function applyStepOverrides(routine,steps,dateKey){
     return replacement?{...step,originalText:step.text,text:replacement,temporary:true}:step;
   });
 }
+function weekdayFromDateKey(dateKey){
+  const parts=String(dateKey||"").split("-").map(Number);
+  if(parts.length!==3||parts.some(value=>!Number.isFinite(value)))return new Date().getDay();
+  return new Date(parts[0],parts[1]-1,parts[2],12,0,0,0).getDay();
+}
+function stepRunsOn(step,dateKey){
+  return !Array.isArray(step.days)||step.days.length===0||step.days.includes(weekdayFromDateKey(dateKey));
+}
 function visibleStepsForDate(routine,dateKey){
   const entry=progressEntry(dateKey,routine.id);
   let steps=routine.steps;
@@ -325,7 +339,7 @@ function visibleStepsForDate(routine,dateKey){
     if(!entry.completedAt)steps=routine.steps.filter(step=>!step.createdAt);
     else steps=routine.steps.filter(step=>!step.createdAt||step.createdAt<=entry.completedAt);
   }
-  return applyStepOverrides(routine,steps,dateKey);
+  return applyStepOverrides(routine,steps.filter(step=>stepRunsOn(step,dateKey)),dateKey);
 }
 function stepSummary(routine,dateKey){
   const steps=visibleStepsForDate(routine,dateKey);
@@ -760,11 +774,23 @@ function renderStepsEditor(){
   selectedSteps.forEach((step,index)=>{
     const row=document.createElement("div");
     row.className="routine-step-editor-row";
-    row.innerHTML='<input type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="danger-btn remove-step-btn">✕</button>';
-    row.querySelector("input").addEventListener("input",event=>selectedSteps[index].text=event.target.value);
+    const stepDays=uniqueDays(step.days);
+    row.innerHTML='<input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step">✕</button><div class="step-schedule-editor"><label><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every routine day</label><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div></div>';
+    row.querySelector(".step-name-input").addEventListener("input",event=>selectedSteps[index].text=event.target.value);
     row.querySelector(".step-up").addEventListener("click",()=>moveEditorStep(index,-1));
     row.querySelector(".step-down").addEventListener("click",()=>moveEditorStep(index,1));
     row.querySelector(".remove-step-btn").addEventListener("click",()=>{selectedSteps.splice(index,1);renderStepsEditor()});
+    row.querySelector(".step-every-day").addEventListener("change",event=>{
+      selectedSteps[index].days=event.target.checked?null:[...selectedDays.length?selectedDays:[new Date().getDay()]];
+      renderStepsEditor();
+    });
+    row.querySelectorAll(".step-day-buttons button").forEach(button=>button.addEventListener("click",()=>{
+      const day=Number(button.dataset.day);
+      const current=uniqueDays(selectedSteps[index].days);
+      if(current.length===1&&current.includes(day))return;
+      selectedSteps[index].days=current.includes(day)?current.filter(value=>value!==day):uniqueDays([...current,day]);
+      renderStepsEditor();
+    }));
     E.stepsEditorList.appendChild(row);
   });
 }
@@ -773,12 +799,12 @@ function moveEditorStep(index,direction){
   if(target<0||target>=selectedSteps.length)return;
   [selectedSteps[index],selectedSteps[target]]=[selectedSteps[target],selectedSteps[index]];
   renderStepsEditor();
-  E.stepsEditorList.querySelectorAll("input")[target]?.focus();
+  E.stepsEditorList.querySelectorAll(".step-name-input")[target]?.focus();
 }
 function addEditorStep(){
-  selectedSteps.push({id:makeId("step"),text:"",createdAt:new Date().toISOString()});
+  selectedSteps.push({id:makeId("step"),text:"",createdAt:new Date().toISOString(),days:null});
   renderStepsEditor();
-  const inputs=E.stepsEditorList.querySelectorAll("input");
+  const inputs=E.stepsEditorList.querySelectorAll(".step-name-input");
   inputs[inputs.length-1]?.focus();
 }
 function resetRoutineForm(){
@@ -819,7 +845,7 @@ function startEditRoutine(id){
   E.routineSnoozeUntil.value=routine.snoozeUntil||"";
   E.customDays.classList.toggle("hidden",routine.schedule!=="custom");
   setSelectedDays(routine.days);
-  selectedSteps=routine.steps.map(step=>({...step}));
+  selectedSteps=routine.steps.map(step=>({...step,days:Array.isArray(step.days)?[...step.days]:null}));
   renderStepsEditor();
   openRoutineEditor();
 }
