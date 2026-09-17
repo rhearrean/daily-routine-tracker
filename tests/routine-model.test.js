@@ -35,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,visibleStepsForDate,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -165,6 +165,52 @@ api.saveRoutines([hiddenLockStep]);
 api.setStepStatus(hiddenLockStep,"visible-second","done");
 assert.equal(api.getStepState(todayKey,"hidden-lock","visible-second"),"done","A hidden earlier step must not keep today's visible step locked");
 assert.equal(api.isRoutineDone(todayKey,"hidden-lock"),true,"Hidden steps must not prevent today's routine completion");
+
+localStorage.clear();
+const carryRoutine=api.normalizeRoutine({
+  id:"home",name:"Home",schedule:"daily",lockSteps:false,
+  steps:[
+    {id:"dishes-a",text:"Dishes",createdAt:""},
+    {id:"dishes-b",text:"Dishes",createdAt:""},
+    {id:"dishes-c",text:"Dishes",createdAt:""}
+  ]
+});
+api.saveRoutines([carryRoutine]);
+api.setStepStatus(carryRoutine,"dishes-a","skipped");
+api.togglePriorityNextTime(carryRoutine,carryRoutine.steps[0],todayKey);
+assert.equal(api.loadPriorityCarryovers().length,1,"Only the exact skipped instance should be queued");
+assert.equal(api.loadPriorityCarryovers()[0].sourceStepId,"dishes-a");
+assert.equal(api.getStepState(todayKey,"home","dishes-a"),"skipped","Flagging must not rewrite the original skip");
+api.togglePriorityNextTime(carryRoutine,carryRoutine.steps[0],todayKey);
+assert.equal(api.loadPriorityCarryovers().length,0,"The priority flag should toggle off without changing the skip");
+api.togglePriorityNextTime(carryRoutine,carryRoutine.steps[0],todayKey);
+const yesterday=new Date(today);
+yesterday.setDate(yesterday.getDate()-1);
+const yesterdayKey=yesterday.getFullYear()+"-"+String(yesterday.getMonth()+1).padStart(2,"0")+"-"+String(yesterday.getDate()).padStart(2,"0");
+const queued=api.loadPriorityCarryovers();
+queued[0].sourceDate=yesterdayKey;
+queued.push({...queued[0],id:"priority-second",sourceStepId:"dishes-c",sourceOrder:2,queuedAt:"2026-09-17T02:00:00.000Z"});
+queued[0].sourceOrder=0;
+api.savePriorityCarryovers(queued);
+localStorage.setItem("dailyRoutineStepState.v12",JSON.stringify({}));
+api.claimPriorityCarryoversForDate(today);
+const carriedSteps=api.visibleStepsForDate(carryRoutine,todayKey);
+assert.equal(carriedSteps.length,5,"Two priorities should be temporary extras in addition to three permanent duplicates");
+assert.deepEqual(JSON.parse(JSON.stringify(carriedSteps.slice(0,2).map(step=>step.sourceStepId))),["dishes-a","dishes-c"],"Multiple priorities retain their original relative order");
+assert.equal(carriedSteps[0].priority,true);
+assert.equal(carriedSteps[0].id===carryRoutine.steps[0].id,false,"A priority copy needs an independent occurrence ID");
+api.setStepStatus(carryRoutine,carriedSteps[0].id,"done");
+assert.equal(api.loadPriorityCarryovers().find(item=>item.id===carriedSteps[0].id).completedDate,todayKey,"Resolving a priority must prevent automatic repetition");
+assert.equal(api.makeBackupPayload().stepPriorities.length,2,"Priority carryovers must be included in backups");
+
+localStorage.clear();
+const weeklyHome=api.normalizeRoutine({id:"weekly-home",name:"Weekly Home",schedule:"custom",days:[1],steps:[{id:"room",text:"Clean room"}]});
+api.saveRoutines([weeklyHome]);
+api.savePriorityCarryovers([{id:"waiting-priority",routineId:"weekly-home",sourceStepId:"room",text:"Clean room",sourceDate:"2026-09-13",sourceOrder:0}]);
+api.claimPriorityCarryoversForDate(new Date(2026,8,15,12));
+assert.equal(api.loadPriorityCarryovers()[0].claimedDate,"","A priority must not move into a day when its routine is not scheduled");
+api.claimPriorityCarryoversForDate(new Date(2026,8,21,12));
+assert.equal(api.loadPriorityCarryovers()[0].claimedDate,"2026-09-21","A priority waits for the same routine's next scheduled occurrence");
 
 localStorage.clear();
 const routineSet=[

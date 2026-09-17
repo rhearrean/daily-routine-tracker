@@ -4,6 +4,19 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.0.8 — Priority Next Routine
+
+- Let an individual skipped step be flagged as **Priority Next Time**.
+- Keep the carryover inside the same routine rather than creating a separate priority routine.
+- Add one temporary extra copy at the top of that routine's next scheduled occurrence.
+- Preserve the routine's permanent steps, duplicate count, saved order, and weekday schedules.
+- Keep the original day recorded as skipped.
+- Allow multiple flagged steps and retain their original relative order.
+- Remove a queued priority when its source skip is cleared or Today is reset.
+- Resolve the temporary priority after it is completed or skipped; require a new flag to carry it again.
+- Include priority carryovers in exports and automatic recovery snapshots.
+- Keep schema 8 and all existing saved data intact.
+
 ### v12.0.7 — Step Weekday Schedules
 
 - Let every step inherit all of its routine's scheduled days by default.

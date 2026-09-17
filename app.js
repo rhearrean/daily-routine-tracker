@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.0.7",
-  build:"2026.09.17.step-weekday-schedules-ui-fix",
+  version:"12.0.8",
+  build:"2026.09.17.priority-next-routine",
   schemaVersion:8,
   releaseDate:"September 17, 2026",
   releaseNotes:[
@@ -21,7 +21,10 @@ const APP_META={
     "Lets each step run on every routine day or only on selected weekdays.",
     "Steps not scheduled today stay hidden and do not block step locking or routine completion.",
     "Keeps duplicate steps independently schedulable, even when their names match.",
-    "Keeps weekday buttons hidden until a step is changed from Every routine day."
+    "Keeps weekday buttons hidden until a step is changed from Every routine day.",
+    "Lets an individually skipped step be flagged as Priority Next Time.",
+    "Adds a temporary extra copy at the top of that same routine's next scheduled occurrence.",
+    "Leaves permanent duplicate steps, weekday schedules, and the original skipped history unchanged."
   ]
 };
 
@@ -29,6 +32,7 @@ const ROUTINES_KEY="dailyRoutineRoutines.v12";
 const PROGRESS_KEY="dailyRoutineProgress.v12";
 const STEP_STATE_KEY="dailyRoutineStepState.v12";
 const STEP_OVERRIDE_KEY="dailyRoutineStepOverrides.v12";
+const PRIORITY_KEY="dailyRoutineStepPriorities.v12";
 const SETTINGS_KEY="dailyRoutineSettings.v12";
 const LEGACY_HABITS_KEY="dailyRoutineHabits.v10_1";
 const LEGACY_COMPLETIONS_KEY="dailyRoutineCompletions.v10_1";
@@ -168,6 +172,32 @@ function clearExpiredStepOverrides(){
   const current=all[dateKey]&&typeof all[dateKey]==="object"?{[dateKey]:all[dateKey]}:{};
   if(JSON.stringify(all)!==JSON.stringify(current))localStorage.setItem(STEP_OVERRIDE_KEY,JSON.stringify(current));
 }
+function normalizePriorityCarryover(item,index=0){
+  if(!item||typeof item!=="object")return null;
+  const routineId=String(item.routineId||"");
+  const text=String(item.text||"").trim();
+  const sourceDate=String(item.sourceDate||"");
+  if(!routineId||!text||!sourceDate)return null;
+  return{
+    id:String(item.id||makeId("priority-"+index)),
+    routineId,
+    sourceStepId:String(item.sourceStepId||""),
+    text,
+    sourceDate,
+    sourceOrder:Number.isFinite(Number(item.sourceOrder))?Number(item.sourceOrder):index,
+    queuedAt:String(item.queuedAt||""),
+    claimedDate:String(item.claimedDate||""),
+    completedDate:String(item.completedDate||"")
+  };
+}
+function loadPriorityCarryovers(){
+  const stored=rawLocal(PRIORITY_KEY,[]);
+  return(Array.isArray(stored)?stored:[]).map(normalizePriorityCarryover).filter(Boolean);
+}
+function savePriorityCarryovers(items){
+  localStorage.setItem(PRIORITY_KEY,JSON.stringify(items.map(normalizePriorityCarryover).filter(Boolean)));
+  scheduleRecoverySnapshot("step priority changed");
+}
 function normalizeLegacyCompletion(entry){
   if(entry===true)return{state:"done",completedAt:""};
   if(!entry||typeof entry!=="object")return null;
@@ -295,7 +325,7 @@ function clearExpiredTodayRoutineSwitch(){
   localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));
   return true;
 }
-function dueRoutinesOn(date=new Date()){
+function scheduledRoutinesOn(date=new Date()){
   const all=loadRoutines();
   let due=all.filter(routine=>routineAvailable(routine,date)&&scheduleMatches(routine,date));
   const switched=activeTodayRoutineSwitch(date);
@@ -307,8 +337,11 @@ function dueRoutinesOn(date=new Date()){
       due.push({...replacement,order:source.order,effectiveOrder:source.order});
     }
   }
+  return sortRoutines(due);
+}
+function dueRoutinesOn(date=new Date()){
   const dateKey=getLocalDateKey(date);
-  return sortRoutines(due).filter(routine=>visibleStepsForDate(routine,dateKey).length>0);
+  return scheduledRoutinesOn(date).filter(routine=>visibleStepsForDate(routine,dateKey).length>0);
 }
 function progressEntry(dateKey,routineId){return loadProgress()[dateKey]&&loadProgress()[dateKey][routineId]||null}
 function isRoutineDone(dateKey,routineId){return progressEntry(dateKey,routineId)?.state==="done"}
@@ -333,14 +366,41 @@ function weekdayFromDateKey(dateKey){
 function stepRunsOn(step,dateKey){
   return !Array.isArray(step.days)||step.days.length===0||step.days.includes(weekdayFromDateKey(dateKey));
 }
+function claimPriorityCarryoversForDate(date=new Date()){
+  const dateKey=getLocalDateKey(date);
+  const scheduledIds=new Set(scheduledRoutinesOn(date).map(routine=>routine.id));
+  const items=loadPriorityCarryovers();
+  let changed=false;
+  items.forEach(item=>{
+    if(item.completedDate)return;
+    if(item.claimedDate&&item.claimedDate<dateKey){item.claimedDate="";changed=true}
+    if(!item.claimedDate&&item.sourceDate<dateKey&&scheduledIds.has(item.routineId)){
+      item.claimedDate=dateKey;
+      changed=true;
+    }
+  });
+  if(changed)savePriorityCarryovers(items);
+  return items;
+}
+function visiblePriorityStepsForDate(routine,dateKey){
+  return loadPriorityCarryovers()
+    .filter(item=>item.routineId===routine.id&&item.claimedDate===dateKey)
+    .sort((a,b)=>a.sourceDate.localeCompare(b.sourceDate)||a.sourceOrder-b.sourceOrder||a.queuedAt.localeCompare(b.queuedAt))
+    .map(item=>({
+      id:item.id,text:item.text,createdAt:"",days:null,priority:true,
+      prioritySourceDate:item.sourceDate,sourceStepId:item.sourceStepId
+    }));
+}
 function visibleStepsForDate(routine,dateKey){
+  const prioritySteps=visiblePriorityStepsForDate(routine,dateKey);
   const entry=progressEntry(dateKey,routine.id);
   let steps=routine.steps;
   if(entry&&entry.state==="done"){
     if(!entry.completedAt)steps=routine.steps.filter(step=>!step.createdAt);
     else steps=routine.steps.filter(step=>!step.createdAt||step.createdAt<=entry.completedAt);
   }
-  return applyStepOverrides(routine,steps.filter(step=>stepRunsOn(step,dateKey)),dateKey);
+  const scheduledSteps=applyStepOverrides(routine,steps.filter(step=>stepRunsOn(step,dateKey)),dateKey);
+  return[...prioritySteps,...scheduledSteps];
 }
 function stepSummary(routine,dateKey){
   const steps=visibleStepsForDate(routine,dateKey);
@@ -382,6 +442,38 @@ function lastResolvedIndex(routine,dateKey){
   }
   return last;
 }
+function queuedPriorityForStep(routineId,stepId,dateKey=getTodayKey()){
+  return loadPriorityCarryovers().find(item=>item.routineId===routineId&&item.sourceStepId===stepId&&item.sourceDate===dateKey)||null;
+}
+function removeQueuedPriority(routineId,stepId,dateKey=getTodayKey()){
+  const items=loadPriorityCarryovers();
+  const remaining=items.filter(item=>!(item.routineId===routineId&&item.sourceStepId===stepId&&item.sourceDate===dateKey));
+  if(remaining.length!==items.length)savePriorityCarryovers(remaining);
+}
+function togglePriorityNextTime(routine,step,dateKey=getTodayKey()){
+  if(getStepState(dateKey,routine.id,step.id)!=="skipped")return;
+  const items=loadPriorityCarryovers();
+  const existingIndex=items.findIndex(item=>item.routineId===routine.id&&item.sourceStepId===step.id&&item.sourceDate===dateKey);
+  if(existingIndex>=0)items.splice(existingIndex,1);
+  else{
+    const sourceOrder=visibleStepsForDate(routine,dateKey).findIndex(item=>item.id===step.id);
+    items.push(normalizePriorityCarryover({
+      id:makeId("priority"),routineId:routine.id,sourceStepId:step.id,text:step.text,
+      sourceDate:dateKey,sourceOrder:sourceOrder<0?routine.steps.length:sourceOrder,
+      queuedAt:new Date().toISOString(),claimedDate:"",completedDate:""
+    }));
+  }
+  savePriorityCarryovers(items);
+  render();
+}
+function updatePriorityCompletion(step,dateKey,status){
+  if(!step.priority)return;
+  const items=loadPriorityCarryovers();
+  const item=items.find(candidate=>candidate.id===step.id);
+  if(!item)return;
+  item.completedDate=status==="pending"?"":dateKey;
+  savePriorityCarryovers(items);
+}
 function setStepStatus(routine,stepId,status){
   const dateKey=getTodayKey();
   const steps=visibleStepsForDate(routine,dateKey);
@@ -400,6 +492,8 @@ function setStepStatus(routine,stepId,status){
   if(status==="pending")delete all[dateKey][routine.id][stepId];
   else all[dateKey][routine.id][stepId]=status;
   saveStepState(all);
+  if(status==="pending"&&current==="skipped")removeQueuedPriority(routine.id,stepId,dateKey);
+  updatePriorityCompletion(steps[index],dateKey,status);
   syncRoutineProgress(routine,dateKey);
   manuallyCollapsed[routine.id]=isRoutineResolved(dateKey,routine.id);
   render();
@@ -447,10 +541,14 @@ function clearRoutineForToday(routineId){
   if(progress[dateKey])delete progress[dateKey][routineId];
   if(states[dateKey])delete states[dateKey][routineId];
   const overrides=loadStepOverrides();
+  const priorities=loadPriorityCarryovers()
+    .filter(item=>!(item.routineId===routineId&&item.sourceDate===dateKey))
+    .map(item=>item.routineId===routineId&&item.claimedDate===dateKey?{...item,completedDate:""}:item);
   if(overrides[dateKey])delete overrides[dateKey][routineId];
   saveProgress(progress);
   saveStepState(states);
   saveStepOverrides(overrides);
+  savePriorityCarryovers(priorities);
   manuallyCollapsed[routineId]=false;
   render();
 }
@@ -492,17 +590,20 @@ function renderStepRow(routine,step,index,dateKey){
   const locked=routine.lockSteps&&state==="pending"&&index!==pendingIndex;
   const canUndo=state!=="pending"&&(!routine.lockSteps||index===lastResolved);
   const row=document.createElement("div");
-  row.className="routine-step-row "+state+(locked?" locked":"");
+  row.className="routine-step-row "+state+(locked?" locked":"")+(step.priority?" priority-step":"");
   const checkEnabled=(state==="pending"&&!locked)||(state==="done"&&canUndo);
   const skipEnabled=(state==="pending"&&!locked)||(state==="skipped"&&canUndo);
   const checkIcon=state==="done"?"✓":state==="skipped"?"—":locked?"🔒":"";
   const checkLabel=state==="done"?"Uncheck "+step.text:state==="pending"&&!locked?"Complete "+step.text:state==="skipped"?"Skipped "+step.text:"Locked "+step.text;
-  const replaceCount=state==="done"&&!step.temporary?pendingMatchingSteps(routine,step.id,dateKey).length:0;
+  const replaceCount=state==="done"&&!step.temporary&&!step.priority?pendingMatchingSteps(routine,step.id,dateKey).length:0;
+  const priorityQueued=state==="skipped"&&Boolean(queuedPriorityForStep(routine.id,step.id,dateKey));
+  const skipButton='<button class="step-skip-btn '+(state==="skipped"?"active":"")+'" type="button" '+(skipEnabled?"":"disabled")+' aria-label="'+(state==="skipped"?"Clear skipped ":"Skip ")+escapeHtml(step.text)+'">Skip</button>';
+  const priorityButton=state==="skipped"?'<button class="step-priority-btn '+(priorityQueued?"active":"")+'" type="button" aria-label="'+(priorityQueued?"Remove priority next time for ":"Priority next time for ")+escapeHtml(step.text)+'" title="Priority Next Time">'+(priorityQueued?"⚑":"⚐")+'</button>':"";
   row.innerHTML=
     '<button class="routine-step-check" type="button" '+(checkEnabled?"":"disabled")+' aria-label="'+escapeHtml(checkLabel)+'"><span aria-hidden="true">'+checkIcon+'</span></button>'+
-    '<div class="routine-step-copy"><span class="routine-step-number">'+String(index+1)+'.</span><span class="routine-step-text">'+escapeHtml(step.text)+'</span>'+(step.temporary?'<span class="temporary-step-pill">Today</span>':"")+'</div>'+
+    '<div class="routine-step-copy"><span class="routine-step-number">'+String(index+1)+'.</span><span class="routine-step-text">'+escapeHtml(step.text)+'</span>'+(step.priority?'<span class="priority-step-pill">Priority</span>':step.temporary?'<span class="temporary-step-pill">Today</span>':"")+'</div>'+
     ((state==="pending"&&!locked)||state==="skipped"
-      ?'<button class="step-skip-btn '+(state==="skipped"?"active":"")+'" type="button" '+(skipEnabled?"":"disabled")+' aria-label="'+(state==="skipped"?"Clear skipped ":"Skip ")+escapeHtml(step.text)+'">Skip</button>'
+      ?'<div class="step-actions">'+skipButton+priorityButton+'</div>'
       :replaceCount?'<button class="step-replace-btn" type="button" aria-label="Replace '+replaceCount+' remaining '+escapeHtml(step.text)+' '+(replaceCount===1?'step':'steps')+' for today">Replace</button>'
       :'<span class="routine-step-control-spacer" aria-hidden="true"></span>');
   row.querySelector(".routine-step-check").addEventListener("click",()=>{
@@ -513,6 +614,7 @@ function renderStepRow(routine,step,index,dateKey){
     if(state==="pending")setStepStatus(routine,step.id,"skipped");
     else if(state==="skipped"&&canUndo)setStepStatus(routine,step.id,"pending");
   });
+  row.querySelector(".step-priority-btn")?.addEventListener("click",()=>togglePriorityNextTime(routine,step,dateKey));
   row.querySelector(".step-replace-btn")?.addEventListener("click",()=>replaceRemainingStepsForToday(routine,step.id));
   return row;
 }
@@ -562,11 +664,11 @@ function getSkippedItems(){
   const items=[];
   dueRoutinesOn(new Date()).forEach(routine=>{
     if(isRoutineSkipped(dateKey,routine.id)){
-      items.push({routine:routine.name,step:"Entire routine"});
+      items.push({routine:routine.name,step:"Entire routine",routineObject:routine,stepObject:null});
       return;
     }
     visibleStepsForDate(routine,dateKey).forEach(step=>{
-      if(getStepState(dateKey,routine.id,step.id)==="skipped")items.push({routine:routine.name,step:step.text});
+      if(getStepState(dateKey,routine.id,step.id)==="skipped")items.push({routine:routine.name,step:step.text,routineObject:routine,stepObject:step});
     });
   });
   return items;
@@ -579,7 +681,15 @@ function renderSkipReview(){
   E.skipReviewToggle.setAttribute("aria-expanded",String(skipReviewExpanded));
   E.skipReviewChevron.textContent=skipReviewExpanded?"⌄":"›";
   E.skipReviewDetails.classList.toggle("hidden",!skipReviewExpanded||items.length===0);
-  E.skipReviewDetails.innerHTML=items.map(item=>'<div class="skip-review-item"><strong>'+escapeHtml(item.step)+'</strong><small>'+escapeHtml(item.routine)+'</small></div>').join("");
+  E.skipReviewDetails.innerHTML="";
+  items.forEach(item=>{
+    const detail=document.createElement("div");
+    detail.className="skip-review-item";
+    const queued=item.stepObject&&queuedPriorityForStep(item.routineObject.id,item.stepObject.id);
+    detail.innerHTML='<div><strong>'+escapeHtml(item.step)+'</strong><small>'+escapeHtml(item.routine)+'</small></div>'+(item.stepObject?'<button class="review-priority-btn '+(queued?"active":"")+'" type="button" aria-label="'+(queued?"Remove priority next time for ":"Priority next time for ")+escapeHtml(item.step)+'">'+(queued?"⚑":"⚐")+' Priority Next Time</button>':"");
+    detail.querySelector(".review-priority-btn")?.addEventListener("click",()=>togglePriorityNextTime(item.routineObject,item.stepObject));
+    E.skipReviewDetails.appendChild(detail);
+  });
 }
 function renderEndOfDay(){
   const progress=getDayProgress();
@@ -697,6 +807,7 @@ function deleteRoutine(id){
   saveProgress(progress);
   saveStepState(states);
   saveStepOverrides(overrides);
+  savePriorityCarryovers(loadPriorityCarryovers().filter(item=>item.routineId!==id));
   render();
 }
 function renderAllRoutines(){
@@ -873,7 +984,7 @@ function saveRoutineFromForm(event){
 function openPanel(panel){panel.classList.remove("hidden");document.body.style.overflow="hidden"}
 function closePanel(panel){panel.classList.add("hidden");document.body.style.overflow=""}
 function resetToday(){
-  if(!confirm("Reset all routine progress and temporary step replacements for today?"))return;
+  if(!confirm("Reset all routine progress, temporary replacements, and priority choices for today?"))return;
   const dateKey=getTodayKey();
   const progress=loadProgress();
   const states=loadStepState();
@@ -881,9 +992,13 @@ function resetToday(){
   delete progress[dateKey];
   delete states[dateKey];
   delete overrides[dateKey];
+  const priorities=loadPriorityCarryovers()
+    .filter(item=>item.sourceDate!==dateKey)
+    .map(item=>item.claimedDate===dateKey?{...item,completedDate:""}:item);
   saveProgress(progress);
   saveStepState(states);
   saveStepOverrides(overrides);
+  savePriorityCarryovers(priorities);
   manuallyCollapsed={};
   skipReviewExpanded=false;
   endOfDayRoutineExpanded=false;
@@ -909,6 +1024,7 @@ function makeBackupPayload(){
     routineProgress:loadProgress(),
     stepState:loadStepState(),
     stepOverrides:loadStepOverrides(),
+    stepPriorities:loadPriorityCarryovers(),
     settings:loadSettings(),
     legacyArchive:legacyArchive()
   };
@@ -920,6 +1036,7 @@ function importBackupPayload(parsed){
     localStorage.setItem(PROGRESS_KEY,JSON.stringify(parsed.routineProgress&&typeof parsed.routineProgress==="object"?parsed.routineProgress:{}));
     localStorage.setItem(STEP_STATE_KEY,JSON.stringify(parsed.stepState&&typeof parsed.stepState==="object"?parsed.stepState:{}));
     localStorage.setItem(STEP_OVERRIDE_KEY,JSON.stringify(parsed.stepOverrides&&typeof parsed.stepOverrides==="object"?parsed.stepOverrides:{}));
+    localStorage.setItem(PRIORITY_KEY,JSON.stringify(Array.isArray(parsed.stepPriorities)?parsed.stepPriorities.map(normalizePriorityCarryover).filter(Boolean):[]));
     localStorage.setItem(SETTINGS_KEY,JSON.stringify(parsed.settings&&typeof parsed.settings==="object"?parsed.settings:{}));
   }else if(Array.isArray(parsed.habits)){
     localStorage.setItem(LEGACY_HABITS_KEY,JSON.stringify(parsed.habits));
@@ -931,6 +1048,7 @@ function importBackupPayload(parsed){
     localStorage.removeItem(PROGRESS_KEY);
     localStorage.removeItem(STEP_STATE_KEY);
     localStorage.removeItem(STEP_OVERRIDE_KEY);
+    localStorage.removeItem(PRIORITY_KEY);
     localStorage.removeItem(SETTINGS_KEY);
     migrateLegacyData();
   }else throw new Error("Backup is missing routines or legacy habits.");
@@ -1136,6 +1254,7 @@ function setupSafeUpdateFlow(){
 }
 
 function render(){
+  claimPriorityCarryoversForDate(new Date());
   renderRoutineList();
   renderSkipReview();
   renderEndOfDay();
