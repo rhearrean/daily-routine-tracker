@@ -1020,6 +1020,7 @@
 .step-schedule-editor label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.78rem;font-weight:800}
 .step-schedule-editor label input{width:18px;height:18px;margin:0}
 .step-day-buttons{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.step-day-buttons.hidden{display:none}
 .step-day-buttons button{min-width:0;min-height:30px;padding:4px 2px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);font-size:.66rem;font-weight:800}
 .step-day-buttons button.selected{border-color:var(--accent);background:rgba(134,239,172,.13);color:var(--accent)}
 .skip-review-item{display:grid;gap:3px;padding:10px 0;border-top:1px solid var(--border)}

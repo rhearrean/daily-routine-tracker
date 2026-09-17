@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.0.6",
-  build:"2026.09.17.step-weekday-schedules",
+  version:"12.0.7",
+  build:"2026.09.17.step-weekday-schedules-ui-fix",
   schemaVersion:8,
   releaseDate:"September 17, 2026",
   releaseNotes:[
@@ -20,7 +20,8 @@ const APP_META={
     "Completing a routine collapses it and automatically opens the next routine.",
     "Lets each step run on every routine day or only on selected weekdays.",
     "Steps not scheduled today stay hidden and do not block step locking or routine completion.",
-    "Keeps duplicate steps independently schedulable, even when their names match."
+    "Keeps duplicate steps independently schedulable, even when their names match.",
+    "Keeps weekday buttons hidden until a step is changed from Every routine day."
   ]
 };
 

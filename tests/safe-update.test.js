@@ -10,7 +10,7 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.0\.6"/);
+assert.match(app,/version:"12\.0\.7"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
@@ -90,11 +90,11 @@ assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.0\\.6"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.0\\.7"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-0-6"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.0\.6"/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-0-7"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.0\.7"/);
 assert.match(worker,/weekday schedules to individual routine steps/);
 assert.match(worker,/Steps not scheduled today stay hidden/);
 assert.match(worker,/Existing steps continue to run on every routine day/);
@@ -120,13 +120,14 @@ assert.match(style,/\.routine-card\.locked-routine\{/);
 assert.match(style,/\.routine-card-header:disabled\{/);
 assert.match(style,/\.step-schedule-editor\{/);
 assert.match(style,/\.step-day-buttons button\.selected\{/);
+assert.match(style,/\.step-day-buttons\.hidden\{display:none\}/);
 assert.doesNotMatch(style,/\.step-undo-btn/);
 assert.match(style,/\.skip-review-details\.hidden\{display:none\}/);
 assert.match(style,/max-height:calc\(100dvh - 36px\)/);
 assert.match(style,/overflow-y:auto/);
 
-assert.match(backlog,/v12\.0\.6 — Step Weekday Schedules/);
+assert.match(backlog,/v12\.0\.7 — Step Weekday Schedules/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and step weekday schedule assertions passed for v12.0.6");
+console.log("Safe update and step weekday schedule assertions passed for v12.0.7");
