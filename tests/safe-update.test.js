@@ -10,13 +10,14 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.0\.8"/);
+assert.match(app,/version:"12\.1\.0"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
 assert.match(app,/const STEP_STATE_KEY="dailyRoutineStepState\.v12"/);
 assert.match(app,/const STEP_OVERRIDE_KEY="dailyRoutineStepOverrides\.v12"/);
 assert.match(app,/const PRIORITY_KEY="dailyRoutineStepPriorities\.v12"/);
+assert.match(app,/const ROTATIONS_KEY="dailyRoutineRotations\.v12"/);
 assert.match(app,/function migrateLegacyData\(\)/);
 assert.match(app,/localStorage\.getItem\(ROUTINES_KEY\)!==null/);
 assert.match(app,/LEGACY_HABITS_KEY/);
@@ -64,6 +65,12 @@ assert.match(app,/class="step-replace-btn/);
 assert.match(app,/temporary-step-pill/);
 assert.match(app,/stepOverrides:loadStepOverrides\(\)/);
 assert.match(app,/stepPriorities:loadPriorityCarryovers\(\)/);
+assert.match(app,/rotations:loadRotations\(\)/);
+assert.match(app,/function rotateSubstep/);
+assert.match(app,/function duplicateEditorStep/);
+assert.match(app,/function requestRemoveEditorStep/);
+assert.match(app,/function askMatchAction/);
+assert.match(app,/Apply & Link All Matches/);
 assert.match(app,/Array\.isArray\(parsed\.stepPriorities\)/);
 assert.match(app,/clearExpiredStepOverrides\(\)/);
 assert.match(app,/function currentRoutineForDate/);
@@ -99,14 +106,14 @@ assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.0\\.8"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.1\\.0"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-0-8"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.0\.8"/);
-assert.match(worker,/Priority Next Time for individually skipped steps/);
-assert.match(worker,/temporary extra copy appears first/);
-assert.match(worker,/do not repeat unless flagged again/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-1-0"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.1\.0"/);
+assert.match(worker,/shared rotating substeps/);
+assert.match(worker,/Tap a rotating item/);
+assert.match(worker,/every exact match/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -118,6 +125,8 @@ assert.doesNotMatch(worker,/11\.1\.6/);
 assert.match(style,/\.routine-list\{/);
 assert.match(style,/\.routine-card\{/);
 assert.match(style,/\.routine-step-row\.locked/);
+assert.match(style,/\.step-rotation-today/);
+assert.match(style,/\.rotation-editor/);
 assert.match(style,/\.routine-step-row\.skipped/);
 assert.match(style,/\.routine-step-check\{/);
 assert.match(style,/min-height:30px/);
@@ -143,4 +152,4 @@ assert.match(backlog,/v12\.0\.8 — Priority Next Routine/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and priority-next-routine assertions passed for v12.0.8");
+console.log("Safe update and rotating-substep assertions passed for v12.1.0");

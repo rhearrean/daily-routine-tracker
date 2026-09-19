@@ -4,6 +4,19 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.1.0 — Shared Rotating Substeps
+
+- Add an optional FIFO reminder list beneath a parent step.
+- Move a tapped rotating item to the end so another room or area becomes next.
+- Keep rotating substeps optional; they never block parent-step or routine completion.
+- Duplicate a step with its name, weekday schedule, and shared rotation group, but not its progress.
+- Let linked duplicates share one rotation order across routines.
+- Offer explicit **Only This Step** or **All Exact Matches** choices for rename, rotation linking, and delete.
+- Match names case-insensitively after trimming and collapsing spaces.
+- Preserve completed history while cleaning pending priorities for deleted or renamed source steps.
+- Include rotations in exports and automatic recovery snapshots.
+- Keep schema 8 and all existing saved data intact.
+
 ### v12.0.8 — Priority Next Routine
 
 - Let an individual skipped step be flagged as **Priority Next Time**.

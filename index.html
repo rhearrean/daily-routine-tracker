@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Daily Routine</title>
-  <link rel="manifest" href="manifest.json?v=12.0.8" />
-  <link rel="stylesheet" href="style.css?v=12.0.8" />
+  <link rel="manifest" href="manifest.json?v=12.1.0" />
+  <link rel="stylesheet" href="style.css?v=12.1.0" />
   <meta name="theme-color" content="#111827" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 </head>
@@ -83,7 +83,7 @@
 
       <section class="card">
         <p class="label">Backup & Restore</p><h2>Import / Export</h2>
-        <p class="helper-text">Export includes routines, ordered steps, priorities, completed/skipped history, settings, and a copy of the previous v11 data.</p>
+        <p class="helper-text">Export includes routines, ordered steps, shared rotating lists, priorities, completed/skipped history, settings, and a copy of the previous v11 data.</p>
         <div class="recovery-status"><strong>Automatic recovery</strong><small id="recoveryStatus">Preparing your first recovery snapshot…</small><button id="restoreRecoveryBtn" class="small-btn" type="button" disabled>Restore Latest Snapshot</button></div>
         <textarea id="backupBox" placeholder="Your routine backup will appear here"></textarea>
         <div class="button-row"><button id="exportBtn" class="small-btn" type="button">Export All Data</button><button id="importBtn" class="primary-btn inline" type="button">Import Data</button></div>
@@ -114,11 +114,24 @@
     </div>
   </div>
 
+  <div id="matchActionSheet" class="match-action-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="matchActionTitle">
+    <div class="match-action-card">
+      <p class="label">Matching Steps</p>
+      <h2 id="matchActionTitle">Choose what to change</h2>
+      <p id="matchActionMessage" class="helper-text"></p>
+      <div class="match-action-buttons">
+        <button id="matchActionOneBtn" class="small-btn" type="button">Only This Step</button>
+        <button id="matchActionAllBtn" class="primary-btn" type="button">All Exact Matches</button>
+        <button id="matchActionCancelBtn" class="small-btn" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div id="updateSheet" class="update-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
     <div class="update-card"><p class="label">Update Available</p><h2 id="updateTitle">Back up before updating</h2><div id="updateReleaseSummary" class="update-release-summary hidden"><strong id="updateReleaseVersion">What's new</strong><ul id="updateReleaseNotes"></ul></div><p class="helper-text">Your current version will stay active until you save a JSON backup and confirm it is safe.</p><ol class="update-steps"><li>Export the latest backup to Files or iCloud Drive.</li><li>Confirm that the file was saved.</li><li>Install the waiting update.</li></ol><button id="updateExportBtn" class="primary-btn" type="button">1. Export Backup</button><label class="update-confirm"><input id="updateBackupConfirmed" type="checkbox" disabled /> I saved the backup file</label><button id="installUpdateBtn" class="primary-btn" type="button" disabled>2. Install Update</button><button id="laterUpdateBtn" class="small-btn" type="button">Remind Me Later</button><p id="updateStatus" class="helper-text" aria-live="polite"></p></div>
   </div>
 
   <input id="backupFileInput" class="hidden" type="file" accept="application/json,.json" />
-  <script src="app.js?v=12.0.8"></script>
+  <script src="app.js?v=12.1.0"></script>
 </body>
 </html>

@@ -1,8 +1,8 @@
 const APP_META={
-  version:"12.0.8",
-  build:"2026.09.17.priority-next-routine",
+  version:"12.1.0",
+  build:"2026.09.19.rotating-substeps",
   schemaVersion:8,
-  releaseDate:"September 17, 2026",
+  releaseDate:"September 19, 2026",
   releaseNotes:[
     "Rebuilds Today around ordered routines instead of clock-based time blocks.",
     "Each routine contains ordered steps, including duplicate step names.",
@@ -24,7 +24,11 @@ const APP_META={
     "Keeps weekday buttons hidden until a step is changed from Every routine day.",
     "Lets an individually skipped step be flagged as Priority Next Time.",
     "Adds a temporary extra copy at the top of that same routine's next scheduled occurrence.",
-    "Leaves permanent duplicate steps, weekday schedules, and the original skipped history unchanged."
+    "Leaves permanent duplicate steps, weekday schedules, and the original skipped history unchanged.",
+    "Adds optional rotating substeps that move to the end of a shared FIFO list when tapped.",
+    "Duplicates a step with its schedule and shared rotating list, without copying progress.",
+    "Offers This Step or All Exact Matches when renaming, linking rotations, or deleting matching steps.",
+    "Includes rotating lists in backups and recovery snapshots without changing schema 8."
   ]
 };
 
@@ -33,6 +37,7 @@ const PROGRESS_KEY="dailyRoutineProgress.v12";
 const STEP_STATE_KEY="dailyRoutineStepState.v12";
 const STEP_OVERRIDE_KEY="dailyRoutineStepOverrides.v12";
 const PRIORITY_KEY="dailyRoutineStepPriorities.v12";
+const ROTATIONS_KEY="dailyRoutineRotations.v12";
 const SETTINGS_KEY="dailyRoutineSettings.v12";
 const LEGACY_HABITS_KEY="dailyRoutineHabits.v10_1";
 const LEGACY_COMPLETIONS_KEY="dailyRoutineCompletions.v10_1";
@@ -65,6 +70,8 @@ const E={
   routineName:$("routineName"),routineSchedule:$("routineSchedule"),customDays:$("customDays"),
   lockSteps:$("lockSteps"),routineSnoozeUntil:$("routineSnoozeUntil"),addStepBtn:$("addStepBtn"),
   stepsEditorList:$("stepsEditorList"),saveRoutineBtn:$("saveRoutineBtn"),cancelEditBtn:$("cancelEditBtn"),
+  matchActionSheet:$("matchActionSheet"),matchActionTitle:$("matchActionTitle"),matchActionMessage:$("matchActionMessage"),
+  matchActionOneBtn:$("matchActionOneBtn"),matchActionAllBtn:$("matchActionAllBtn"),matchActionCancelBtn:$("matchActionCancelBtn"),
   updateSheet:$("updateSheet"),updateExportBtn:$("updateExportBtn"),updateBackupConfirmed:$("updateBackupConfirmed"),
   installUpdateBtn:$("installUpdateBtn"),laterUpdateBtn:$("laterUpdateBtn"),updateStatus:$("updateStatus"),
   updateReleaseSummary:$("updateReleaseSummary"),updateReleaseVersion:$("updateReleaseVersion"),
@@ -73,6 +80,10 @@ const E={
 
 let selectedDays=[];
 let selectedSteps=[];
+let selectedRotations={};
+let pendingDeleteStepIds=new Set();
+let expandedRotationRows=new Set();
+let matchActionResolver=null;
 let editingRoutineId=null;
 let manuallyCollapsed={};
 let skipReviewExpanded=false;
@@ -106,13 +117,14 @@ function uniqueDays(days){
   return [...new Set((Array.isArray(days)?days:[]).map(Number).filter(day=>day>=0&&day<=6))].sort();
 }
 function normalizeStep(step,index=0){
-  if(typeof step==="string")return{id:makeId("step-"+index),text:step.trim(),createdAt:"",days:null};
+  if(typeof step==="string")return{id:makeId("step-"+index),text:step.trim(),createdAt:"",days:null,rotationGroupId:""};
   const days=uniqueDays(step&&step.days);
   return{
     id:String(step&&step.id||makeId("step-"+index)),
     text:String(step&&step.text||"").trim(),
     createdAt:String(step&&step.createdAt||""),
-    days:days.length?days:null
+    days:days.length?days:null,
+    rotationGroupId:String(step&&step.rotationGroupId||"")
   };
 }
 function normalizeRoutine(routine,index=0){
@@ -151,6 +163,47 @@ function saveRoutines(routines){
   localStorage.setItem(ROUTINES_KEY,JSON.stringify(sortRoutines(routines)));
   scheduleRecoverySnapshot("routines changed");
 }
+function normalizeRotationGroup(group,id=""){
+  const items=(Array.isArray(group&&group.items)?group.items:[]).map((item,index)=>({
+    id:String(item&&item.id||makeId("rotation-item-"+index)),text:String(item&&item.text||"").trim()
+  })).filter(item=>item.text);
+  const validIds=new Set(items.map(item=>item.id));
+  const queue=[...new Set((Array.isArray(group&&group.queue)?group.queue:[]).map(String).filter(itemId=>validIds.has(itemId)))];
+  items.forEach(item=>{if(!queue.includes(item.id))queue.push(item.id)});
+  return{id:String(group&&group.id||id||makeId("rotation")),items,queue};
+}
+function loadRotations(){
+  const stored=rawLocal(ROTATIONS_KEY,{});
+  const result={};
+  if(stored&&typeof stored==="object"&&!Array.isArray(stored))Object.entries(stored).forEach(([id,group])=>{
+    const normalized=normalizeRotationGroup(group,id);
+    if(normalized.items.length)result[id]=normalized;
+  });
+  return result;
+}
+function saveRotations(rotations){
+  const result={};
+  Object.entries(rotations&&typeof rotations==="object"?rotations:{}).forEach(([id,group])=>{
+    const normalized=normalizeRotationGroup(group,id);
+    if(normalized.items.length)result[id]=normalized;
+  });
+  localStorage.setItem(ROTATIONS_KEY,JSON.stringify(result));
+  scheduleRecoverySnapshot("rotating substeps changed");
+}
+function orderedRotationItems(group){
+  if(!group)return[];
+  const byId=new Map(group.items.map(item=>[item.id,item]));
+  return group.queue.map(id=>byId.get(id)).filter(Boolean);
+}
+function rotateSubstep(groupId,itemId){
+  const rotations=loadRotations();
+  const group=rotations[groupId];
+  if(!group||!group.queue.includes(itemId))return;
+  group.queue=group.queue.filter(id=>id!==itemId);
+  group.queue.push(itemId);
+  saveRotations(rotations);
+  render();
+}
 function loadProgress(){return rawLocal(PROGRESS_KEY,{})}
 function saveProgress(progress){
   localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));
@@ -182,6 +235,7 @@ function normalizePriorityCarryover(item,index=0){
     id:String(item.id||makeId("priority-"+index)),
     routineId,
     sourceStepId:String(item.sourceStepId||""),
+    rotationGroupId:String(item.rotationGroupId||""),
     text,
     sourceDate,
     sourceOrder:Number.isFinite(Number(item.sourceOrder))?Number(item.sourceOrder):index,
@@ -388,7 +442,7 @@ function visiblePriorityStepsForDate(routine,dateKey){
     .sort((a,b)=>a.sourceDate.localeCompare(b.sourceDate)||a.sourceOrder-b.sourceOrder||a.queuedAt.localeCompare(b.queuedAt))
     .map(item=>({
       id:item.id,text:item.text,createdAt:"",days:null,priority:true,
-      prioritySourceDate:item.sourceDate,sourceStepId:item.sourceStepId
+      prioritySourceDate:item.sourceDate,sourceStepId:item.sourceStepId,rotationGroupId:item.rotationGroupId||""
     }));
 }
 function visibleStepsForDate(routine,dateKey){
@@ -459,6 +513,7 @@ function togglePriorityNextTime(routine,step,dateKey=getTodayKey()){
     const sourceOrder=visibleStepsForDate(routine,dateKey).findIndex(item=>item.id===step.id);
     items.push(normalizePriorityCarryover({
       id:makeId("priority"),routineId:routine.id,sourceStepId:step.id,text:step.text,
+      rotationGroupId:step.rotationGroupId||"",
       sourceDate:dateKey,sourceOrder:sourceOrder<0?routine.steps.length:sourceOrder,
       queuedAt:new Date().toISOString(),claimedDate:"",completedDate:""
     }));
@@ -616,6 +671,18 @@ function renderStepRow(routine,step,index,dateKey){
   });
   row.querySelector(".step-priority-btn")?.addEventListener("click",()=>togglePriorityNextTime(routine,step,dateKey));
   row.querySelector(".step-replace-btn")?.addEventListener("click",()=>replaceRemainingStepsForToday(routine,step.id));
+  const rotation=step.temporary?null:loadRotations()[step.rotationGroupId];
+  if(rotation&&rotation.items.length){
+    const details=document.createElement("details");
+    const rowKey=routine.id+"::"+step.id;
+    details.className="step-rotation-today";
+    details.open=expandedRotationRows.has(rowKey);
+    const items=orderedRotationItems(rotation);
+    details.innerHTML='<summary><span>↻ Rotating areas</span><small>Next: '+escapeHtml(items[0]?.text||"")+'</small></summary><div class="step-rotation-list">'+items.map((item,itemIndex)=>'<button type="button" data-item-id="'+escapeHtml(item.id)+'" '+(state==="pending"&&!locked?"":"disabled")+'><span>'+escapeHtml(item.text)+'</span><small>'+(itemIndex===0?"Next":"Later")+'</small></button>').join("")+'</div>';
+    details.addEventListener("toggle",()=>details.open?expandedRotationRows.add(rowKey):expandedRotationRows.delete(rowKey));
+    details.querySelectorAll("button[data-item-id]").forEach(button=>button.addEventListener("click",()=>rotateSubstep(step.rotationGroupId,button.dataset.itemId)));
+    row.appendChild(details);
+  }
   return row;
 }
 function renderRoutineList(){
@@ -797,7 +864,12 @@ function resumeRoutine(id){
 function deleteRoutine(id){
   const routine=loadRoutines().find(item=>item.id===id);
   if(!routine||!confirm('Delete "'+routine.name+'"?\n\nIts routine history will also be removed.'))return;
-  saveRoutines(loadRoutines().filter(item=>item.id!==id));
+  const remainingRoutines=loadRoutines().filter(item=>item.id!==id);
+  saveRoutines(remainingRoutines);
+  const rotations=loadRotations();
+  const usedGroups=new Set(remainingRoutines.flatMap(item=>item.steps.map(step=>step.rotationGroupId).filter(Boolean)));
+  Object.keys(rotations).forEach(groupId=>{if(!usedGroups.has(groupId))delete rotations[groupId]});
+  saveRotations(rotations);
   const progress=loadProgress();
   const states=loadStepState();
   const overrides=loadStepOverrides();
@@ -877,6 +949,85 @@ function setSelectedDays(days){
   selectedDays=uniqueDays(days);
   E.customDays.querySelectorAll("button").forEach(button=>button.classList.toggle("selected",selectedDays.includes(Number(button.dataset.day))));
 }
+function normalizedStepName(text){return String(text||"").trim().replace(/\s+/g," ").toLocaleLowerCase()}
+function stepRefs(routines,name){
+  const key=normalizedStepName(name);
+  const refs=[];
+  routines.forEach(routine=>routine.steps.forEach(step=>{if(normalizedStepName(step.text)===key)refs.push({routine,step})}));
+  return refs;
+}
+function matchRoutineSummary(refs){
+  return[...new Set(refs.map(ref=>ref.routine.name))].join(", ");
+}
+function finishMatchAction(choice){
+  E.matchActionSheet.classList.add("hidden");
+  const resolve=matchActionResolver;
+  matchActionResolver=null;
+  if(resolve)resolve(choice);
+}
+function askMatchAction({title,message,oneLabel,allLabel,dangerAll=false}){
+  E.matchActionTitle.textContent=title;
+  E.matchActionMessage.textContent=message;
+  E.matchActionOneBtn.textContent=oneLabel;
+  E.matchActionAllBtn.textContent=allLabel;
+  E.matchActionAllBtn.classList.toggle("danger-btn",dangerAll);
+  E.matchActionAllBtn.classList.toggle("primary-btn",!dangerAll);
+  E.matchActionSheet.classList.remove("hidden");
+  return new Promise(resolve=>{matchActionResolver=resolve});
+}
+function rotationEditorMarkup(step){
+  const group=selectedRotations[step.rotationGroupId];
+  if(!group)return'<button type="button" class="small-btn add-rotation-btn">＋ Add Rotating Substeps</button>';
+  const items=orderedRotationItems(group);
+  return'<details class="rotation-editor" open><summary>↻ Rotating Substeps <span>'+items.length+'</span></summary><p class="helper-text no-top">Optional reminders. Tapping one on Today moves it to the end without completing the parent step.</p><div class="rotation-editor-items">'+items.map((item,itemIndex)=>'<div class="rotation-editor-item"><input type="text" data-rotation-item="'+escapeHtml(item.id)+'" value="'+escapeHtml(item.text)+'" placeholder="Room or area" aria-label="Rotating substep '+(itemIndex+1)+'" /><div><button type="button" class="reorder-btn rotation-up" data-item-id="'+escapeHtml(item.id)+'" '+(itemIndex===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn rotation-down" data-item-id="'+escapeHtml(item.id)+'" '+(itemIndex===items.length-1?"disabled":"")+'>↓</button><button type="button" class="danger-btn remove-rotation-item" data-item-id="'+escapeHtml(item.id)+'">✕</button></div></div>').join("")+'</div><div class="rotation-editor-actions"><button type="button" class="small-btn add-rotation-item">＋ Area</button><button type="button" class="small-btn unlink-rotation-btn">Remove List From This Step</button></div></details>';
+}
+function addRotationToStep(index){
+  const id=makeId("rotation");
+  selectedRotations[id]={id,items:[{id:makeId("rotation-item"),text:""}],queue:[]};
+  selectedRotations[id].queue=[selectedRotations[id].items[0].id];
+  selectedSteps[index].rotationGroupId=id;
+  renderStepsEditor();
+}
+function updateRotationItem(groupId,itemId,text){
+  const item=selectedRotations[groupId]?.items.find(candidate=>candidate.id===itemId);
+  if(item)item.text=text;
+}
+function moveRotationItem(groupId,itemId,direction){
+  const group=selectedRotations[groupId];
+  const index=group?.queue.indexOf(itemId)??-1;
+  const target=index+direction;
+  if(!group||index<0||target<0||target>=group.queue.length)return;
+  [group.queue[index],group.queue[target]]=[group.queue[target],group.queue[index]];
+  renderStepsEditor();
+}
+function removeRotationItem(groupId,itemId){
+  const group=selectedRotations[groupId];
+  if(!group)return;
+  group.items=group.items.filter(item=>item.id!==itemId);
+  group.queue=group.queue.filter(id=>id!==itemId);
+  renderStepsEditor();
+}
+function duplicateEditorStep(index){
+  const source=selectedSteps[index];
+  selectedSteps.splice(index+1,0,{id:makeId("step"),text:source.text,createdAt:new Date().toISOString(),days:Array.isArray(source.days)?[...source.days]:null,rotationGroupId:source.rotationGroupId||"",originalText:"",originalRotationGroupId:""});
+  renderStepsEditor();
+}
+async function requestRemoveEditorStep(index){
+  const source=selectedSteps[index];
+  const persisted=loadRoutines();
+  const existing=persisted.flatMap(routine=>routine.steps.map(step=>({routine,step}))).find(ref=>ref.step.id===source.id);
+  if(!existing){selectedSteps.splice(index,1);renderStepsEditor();return}
+  const matches=stepRefs(persisted,existing.step.text).filter(ref=>!pendingDeleteStepIds.has(ref.step.id));
+  let ids=[source.id];
+  if(matches.length>1){
+    const choice=await askMatchAction({title:"Delete matching steps?",message:'Found '+matches.length+' exact matches for "'+existing.step.text+'" in '+matchRoutineSummary(matches)+'. Choose what Save Changes should remove.',oneLabel:"Delete Only This Step",allLabel:"Delete All Exact Matches",dangerAll:true});
+    if(choice==="cancel")return;
+    if(choice==="all")ids=matches.map(ref=>ref.step.id);
+  }
+  ids.forEach(id=>pendingDeleteStepIds.add(id));
+  selectedSteps=selectedSteps.filter(step=>!ids.includes(step.id));
+  renderStepsEditor();
+}
 function renderStepsEditor(){
   E.stepsEditorList.innerHTML="";
   if(!selectedSteps.length){
@@ -887,11 +1038,23 @@ function renderStepsEditor(){
     const row=document.createElement("div");
     row.className="routine-step-editor-row";
     const stepDays=uniqueDays(step.days);
-    row.innerHTML='<input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step">✕</button><div class="step-schedule-editor"><label><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every routine day</label><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div></div>';
+    row.innerHTML='<input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="small-btn duplicate-step-btn">Copy</button><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step">✕</button><div class="step-schedule-editor"><label><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every routine day</label><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div></div><div class="rotation-editor-shell">'+rotationEditorMarkup(step)+'</div>';
     row.querySelector(".step-name-input").addEventListener("input",event=>selectedSteps[index].text=event.target.value);
     row.querySelector(".step-up").addEventListener("click",()=>moveEditorStep(index,-1));
     row.querySelector(".step-down").addEventListener("click",()=>moveEditorStep(index,1));
-    row.querySelector(".remove-step-btn").addEventListener("click",()=>{selectedSteps.splice(index,1);renderStepsEditor()});
+    row.querySelector(".duplicate-step-btn").addEventListener("click",()=>duplicateEditorStep(index));
+    row.querySelector(".remove-step-btn").addEventListener("click",()=>requestRemoveEditorStep(index));
+    row.querySelector(".add-rotation-btn")?.addEventListener("click",()=>addRotationToStep(index));
+    row.querySelector(".add-rotation-item")?.addEventListener("click",()=>{
+      const group=selectedRotations[step.rotationGroupId];
+      const item={id:makeId("rotation-item"),text:""};
+      group.items.push(item);group.queue.push(item.id);renderStepsEditor();
+    });
+    row.querySelector(".unlink-rotation-btn")?.addEventListener("click",()=>{selectedSteps[index].rotationGroupId="";renderStepsEditor()});
+    row.querySelectorAll("[data-rotation-item]").forEach(input=>input.addEventListener("input",event=>updateRotationItem(step.rotationGroupId,input.dataset.rotationItem,event.target.value)));
+    row.querySelectorAll(".rotation-up").forEach(button=>button.addEventListener("click",()=>moveRotationItem(step.rotationGroupId,button.dataset.itemId,-1)));
+    row.querySelectorAll(".rotation-down").forEach(button=>button.addEventListener("click",()=>moveRotationItem(step.rotationGroupId,button.dataset.itemId,1)));
+    row.querySelectorAll(".remove-rotation-item").forEach(button=>button.addEventListener("click",()=>removeRotationItem(step.rotationGroupId,button.dataset.itemId)));
     row.querySelector(".step-every-day").addEventListener("change",event=>{
       selectedSteps[index].days=event.target.checked?null:[...selectedDays.length?selectedDays:[new Date().getDay()]];
       renderStepsEditor();
@@ -914,7 +1077,7 @@ function moveEditorStep(index,direction){
   E.stepsEditorList.querySelectorAll(".step-name-input")[target]?.focus();
 }
 function addEditorStep(){
-  selectedSteps.push({id:makeId("step"),text:"",createdAt:new Date().toISOString(),days:null});
+  selectedSteps.push({id:makeId("step"),text:"",createdAt:new Date().toISOString(),days:null,rotationGroupId:"",originalText:"",originalRotationGroupId:""});
   renderStepsEditor();
   const inputs=E.stepsEditorList.querySelectorAll(".step-name-input");
   inputs[inputs.length-1]?.focus();
@@ -932,6 +1095,8 @@ function resetRoutineForm(){
   E.customDays.classList.add("hidden");
   setSelectedDays([]);
   selectedSteps=[];
+  selectedRotations=JSON.parse(JSON.stringify(loadRotations()));
+  pendingDeleteStepIds=new Set();
   renderStepsEditor();
 }
 function openRoutineEditor(){
@@ -957,11 +1122,13 @@ function startEditRoutine(id){
   E.routineSnoozeUntil.value=routine.snoozeUntil||"";
   E.customDays.classList.toggle("hidden",routine.schedule!=="custom");
   setSelectedDays(routine.days);
-  selectedSteps=routine.steps.map(step=>({...step,days:Array.isArray(step.days)?[...step.days]:null}));
+  selectedRotations=JSON.parse(JSON.stringify(loadRotations()));
+  pendingDeleteStepIds=new Set();
+  selectedSteps=routine.steps.map(step=>({...step,days:Array.isArray(step.days)?[...step.days]:null,originalText:step.text,originalRotationGroupId:step.rotationGroupId||""}));
   renderStepsEditor();
   openRoutineEditor();
 }
-function saveRoutineFromForm(event){
+async function saveRoutineFromForm(event){
   event.preventDefault();
   const name=E.routineName.value.trim();
   const schedule=E.routineSchedule.value;
@@ -969,17 +1136,57 @@ function saveRoutineFromForm(event){
   if(!name){alert("Add a routine name first.");return}
   if(schedule==="custom"&&selectedDays.length===0){alert("Choose at least one day.");return}
   if(steps.length===0){alert("Add at least one routine step.");return}
-  const routines=loadRoutines();
-  if(editingRoutineId){
-    const index=routines.findIndex(routine=>routine.id===editingRoutineId);
-    if(index>=0)routines[index]={...routines[index],name,schedule,days:schedule==="custom"?selectedDays:[],lockSteps:E.lockSteps.checked,snoozeUntil:E.routineSnoozeUntil.value,steps};
-  }else{
-    routines.push(normalizeRoutine({id:makeId(name),name,schedule,days:schedule==="custom"?selectedDays:[],order:(routines.length+1)*10,lockSteps:E.lockSteps.checked,snoozeUntil:E.routineSnoozeUntil.value,steps}));
-  }
-  saveRoutines(routines);
-  resetRoutineForm();
-  closeRoutineEditor();
-  render();
+  E.saveRoutineBtn.disabled=true;
+  const persisted=loadRoutines();
+  let routines=persisted.map(routine=>({...routine,steps:routine.steps.map(step=>({...step}))}));
+  const renameAll=[];
+  const linkAll=[];
+  try{
+    for(const selected of selectedSteps){
+      if(!selected.originalText||pendingDeleteStepIds.has(selected.id))continue;
+      if(normalizedStepName(selected.originalText)!==normalizedStepName(selected.text)){
+        const matches=stepRefs(persisted,selected.originalText).filter(ref=>!pendingDeleteStepIds.has(ref.step.id));
+        if(matches.length>1){
+          const choice=await askMatchAction({title:"Rename matching steps?",message:'Found '+matches.length+' exact matches for "'+selected.originalText+'" in '+matchRoutineSummary(matches)+'.',oneLabel:"Rename Only This Step",allLabel:"Rename All Matches"});
+          if(choice==="cancel")return;
+          if(choice==="all")renameAll.push({ids:matches.map(ref=>ref.step.id),text:selected.text});
+        }
+      }
+      if(!selected.originalRotationGroupId&&selected.rotationGroupId){
+        const matches=stepRefs(persisted,selected.originalText).filter(ref=>ref.step.id!==selected.id&&!pendingDeleteStepIds.has(ref.step.id));
+        if(matches.length){
+          const conflicts=matches.filter(ref=>ref.step.rotationGroupId&&ref.step.rotationGroupId!==selected.rotationGroupId).length;
+          const warning=conflicts?' '+conflicts+' already have another rotating list; linking will replace it.':'';
+          const choice=await askMatchAction({title:"Share this rotating list?",message:'Found '+matches.length+' other exact '+(matches.length===1?'match':'matches')+' in '+matchRoutineSummary(matches)+'.'+warning,oneLabel:"Only This Step",allLabel:"Apply & Link All Matches"});
+          if(choice==="cancel")return;
+          if(choice==="all")linkAll.push({ids:matches.map(ref=>ref.step.id),groupId:selected.rotationGroupId});
+        }
+      }
+    }
+    routines=routines.map(routine=>({...routine,steps:routine.steps.filter(step=>!pendingDeleteStepIds.has(step.id))}));
+    if(editingRoutineId){
+      const routineIndex=routines.findIndex(routine=>routine.id===editingRoutineId);
+      if(routineIndex>=0)routines[routineIndex]={...routines[routineIndex],name,schedule,days:schedule==="custom"?selectedDays:[],lockSteps:E.lockSteps.checked,snoozeUntil:E.routineSnoozeUntil.value,steps};
+    }else{
+      routines.push(normalizeRoutine({id:makeId(name),name,schedule,days:schedule==="custom"?selectedDays:[],order:(routines.length+1)*10,lockSteps:E.lockSteps.checked,snoozeUntil:E.routineSnoozeUntil.value,steps}));
+    }
+    renameAll.forEach(operation=>routines.forEach(routine=>routine.steps.forEach(step=>{if(operation.ids.includes(step.id))step.text=operation.text})));
+    linkAll.forEach(operation=>routines.forEach(routine=>routine.steps.forEach(step=>{if(operation.ids.includes(step.id))step.rotationGroupId=operation.groupId})));
+    const rotations={};
+    Object.entries(selectedRotations).forEach(([id,group])=>{const normalized=normalizeRotationGroup(group,id);if(normalized.items.length)rotations[id]=normalized});
+    routines.forEach(routine=>routine.steps.forEach(step=>{if(step.rotationGroupId&&!rotations[step.rotationGroupId])step.rotationGroupId=""}));
+    const usedGroups=new Set(routines.flatMap(routine=>routine.steps.map(step=>step.rotationGroupId).filter(Boolean)));
+    Object.keys(rotations).forEach(id=>{if(!usedGroups.has(id))delete rotations[id]});
+    let priorities=loadPriorityCarryovers().filter(item=>!pendingDeleteStepIds.has(item.sourceStepId));
+    renameAll.forEach(operation=>priorities.forEach(item=>{if(!item.completedDate&&operation.ids.includes(item.sourceStepId))item.text=operation.text}));
+    priorities.forEach(item=>{if(!item.completedDate){const source=routines.flatMap(routine=>routine.steps).find(step=>step.id===item.sourceStepId);if(source)item.rotationGroupId=source.rotationGroupId||""}});
+    saveRoutines(routines);
+    saveRotations(rotations);
+    savePriorityCarryovers(priorities);
+    resetRoutineForm();
+    closeRoutineEditor();
+    render();
+  }finally{E.saveRoutineBtn.disabled=false}
 }
 function openPanel(panel){panel.classList.remove("hidden");document.body.style.overflow="hidden"}
 function closePanel(panel){panel.classList.add("hidden");document.body.style.overflow=""}
@@ -1025,6 +1232,7 @@ function makeBackupPayload(){
     stepState:loadStepState(),
     stepOverrides:loadStepOverrides(),
     stepPriorities:loadPriorityCarryovers(),
+    rotations:loadRotations(),
     settings:loadSettings(),
     legacyArchive:legacyArchive()
   };
@@ -1037,12 +1245,14 @@ function importBackupPayload(parsed){
     localStorage.setItem(STEP_STATE_KEY,JSON.stringify(parsed.stepState&&typeof parsed.stepState==="object"?parsed.stepState:{}));
     localStorage.setItem(STEP_OVERRIDE_KEY,JSON.stringify(parsed.stepOverrides&&typeof parsed.stepOverrides==="object"?parsed.stepOverrides:{}));
     localStorage.setItem(PRIORITY_KEY,JSON.stringify(Array.isArray(parsed.stepPriorities)?parsed.stepPriorities.map(normalizePriorityCarryover).filter(Boolean):[]));
+    localStorage.setItem(ROTATIONS_KEY,JSON.stringify(parsed.rotations&&typeof parsed.rotations==="object"&&!Array.isArray(parsed.rotations)?parsed.rotations:{}));
     localStorage.setItem(SETTINGS_KEY,JSON.stringify(parsed.settings&&typeof parsed.settings==="object"?parsed.settings:{}));
   }else if(Array.isArray(parsed.habits)){
     localStorage.setItem(LEGACY_HABITS_KEY,JSON.stringify(parsed.habits));
     localStorage.setItem(LEGACY_COMPLETIONS_KEY,JSON.stringify(parsed.completions||{}));
     localStorage.setItem(LEGACY_BLOCKS_KEY,JSON.stringify(parsed.blocks||parsed.timeBlocks||[]));
     localStorage.setItem(LEGACY_SETTINGS_KEY,JSON.stringify(parsed.settings||{}));
+    localStorage.removeItem(ROTATIONS_KEY);
     localStorage.setItem(LEGACY_STEPS_KEY,JSON.stringify(parsed.routineStepState||{}));
     localStorage.removeItem(ROUTINES_KEY);
     localStorage.removeItem(PROGRESS_KEY);
@@ -1265,6 +1475,10 @@ function render(){
   E.autoCollapseRoutines.checked=loadSettings().autoCollapseCompletedRoutines!==false;
 }
 function wireEvents(){
+  E.matchActionOneBtn.addEventListener("click",()=>finishMatchAction("one"));
+  E.matchActionAllBtn.addEventListener("click",()=>finishMatchAction("all"));
+  E.matchActionCancelBtn.addEventListener("click",()=>finishMatchAction("cancel"));
+  E.matchActionSheet.addEventListener("click",event=>{if(event.target===E.matchActionSheet)finishMatchAction("cancel")});
   E.openAddRoutineBtn.addEventListener("click",openAddRoutine);
   E.settingsAddRoutineBtn.addEventListener("click",openAddRoutine);
   E.closeRoutineEditorBtn.addEventListener("click",()=>{resetRoutineForm();closeRoutineEditor()});

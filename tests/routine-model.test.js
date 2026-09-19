@@ -35,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -237,4 +237,20 @@ const completedRoutine=api.normalizeRoutine({
 });
 assert.deepEqual(JSON.parse(JSON.stringify(api.visibleStepsForDate(completedRoutine,todayKey).map(step=>step.id))),["old"],"A new step stays hidden from a legacy completion without a timestamp");
 
-console.log("Routine migration, duplicate step, schedule, and lock assertions passed");
+localStorage.clear();
+api.saveRotations({shared:{id:"shared",items:[{id:"kitchen",text:"Kitchen"},{id:"bedroom",text:"Bedroom"},{id:"garage",text:"Garage"}],queue:["kitchen","bedroom","garage"]}});
+const rotatingRoutine=api.normalizeRoutine({id:"declutter",name:"Declutter",schedule:"daily",steps:[
+  {id:"declutter-a",text:"Declutter House",rotationGroupId:"shared"},
+  {id:"declutter-b",text:"Declutter House",rotationGroupId:"shared"}
+]});
+api.saveRoutines([rotatingRoutine]);
+assert.equal(rotatingRoutine.steps[0].rotationGroupId,"shared","A normalized step must preserve its shared rotation reference");
+api.rotateSubstep("shared","kitchen");
+assert.deepEqual(JSON.parse(JSON.stringify(api.orderedRotationItems(api.loadRotations().shared).map(item=>item.id))),["bedroom","garage","kitchen"],"Tapping a rotating item must move it to the back of the shared FIFO queue");
+assert.equal(api.loadRoutines()[0].steps[1].rotationGroupId,"shared","A duplicate can reference the same shared queue");
+assert.equal(api.normalizedStepName("  Declutter   HOUSE "),"declutter house","Exact-name matching ignores case and repeated spaces");
+assert.notEqual(api.normalizedStepName("Declutter Garage"),api.normalizedStepName("Declutter House"));
+const rotationBackup=api.makeBackupPayload();
+assert.equal(rotationBackup.rotations.shared.queue[2],"kitchen","Rotating queues must be included in backups");
+
+console.log("Routine migration, rotation, duplicate step, schedule, and lock assertions passed");

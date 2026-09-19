@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v12-0-8";
+const CACHE_NAME="daily-routine-v12-1-0";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"12.0.8",summary:"Adds Priority Next Time for individually skipped steps.",notes:["Flag any skipped step as Priority Next Time from its row or Review Skipped.","A temporary extra copy appears first in that same routine's next scheduled occurrence.","Permanent routine steps and duplicate counts remain unchanged.","Multiple flagged steps retain their original relative order.","Clearing a skip or resetting Today also clears the priority created from it.","Completed and skipped priority copies do not repeat unless flagged again.","Priority carryovers are included in backups and recovery snapshots.","No routine, step, history, or schema data is cleared."]};
-const FILES_TO_CACHE=["./index.html?v=12.0.8","./style.css?v=12.0.8","./app.js?v=12.0.8","./manifest.json?v=12.0.8","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"12.1.0",summary:"Adds shared rotating substeps and safer controls for matching steps.",notes:["Add an optional FIFO list of rooms or areas beneath any parent step.","Tap a rotating item on Today to move it to the end of the shared list.","Rotating items are reminders and do not block completing or skipping the parent step.","Copy a step with its weekday schedule and shared rotating list, without copying progress.","Choose only this step or every exact match when renaming, linking a new rotation, or deleting.","Names match case-insensitively after extra spaces are removed.","Shared rotation changes appear on every linked duplicate.","Rotating lists are included in exports and automatic recovery snapshots.","Existing routines, history, and schema 8 data remain intact."]};
+const FILES_TO_CACHE=["./index.html?v=12.1.0","./style.css?v=12.1.0","./app.js?v=12.1.0","./manifest.json?v=12.1.0","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.0.8"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.1.0"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));
