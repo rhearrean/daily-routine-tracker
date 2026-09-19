@@ -4,7 +4,7 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
-### v12.1.0 — Shared Rotating Substeps
+### v12.1.1 — Shared Rotating Substeps
 
 - Add an optional FIFO reminder list beneath a parent step.
 - Move a tapped rotating item to the end so another room or area becomes next.

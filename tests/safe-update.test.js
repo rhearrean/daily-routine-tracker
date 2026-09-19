@@ -10,7 +10,7 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.1\.0"/);
+assert.match(app,/version:"12\.1\.1"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
@@ -106,11 +106,11 @@ assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.1\\.0"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.1\\.1"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-1-0"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.1\.0"/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-1-1"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.1\.1"/);
 assert.match(worker,/shared rotating substeps/);
 assert.match(worker,/Tap a rotating item/);
 assert.match(worker,/every exact match/);
@@ -152,4 +152,4 @@ assert.match(backlog,/v12\.0\.8 — Priority Next Routine/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and rotating-substep assertions passed for v12.1.0");
+console.log("Safe update and rotating-substep assertions passed for v12.1.1");

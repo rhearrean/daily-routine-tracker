@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.1.0",
-  build:"2026.09.19.rotating-substeps",
+  version:"12.1.1",
+  build:"2026.09.19.rotating-substeps-1",
   schemaVersion:8,
   releaseDate:"September 19, 2026",
   releaseNotes:[
@@ -1156,7 +1156,7 @@ async function saveRoutineFromForm(event){
         const matches=stepRefs(persisted,selected.originalText).filter(ref=>ref.step.id!==selected.id&&!pendingDeleteStepIds.has(ref.step.id));
         if(matches.length){
           const conflicts=matches.filter(ref=>ref.step.rotationGroupId&&ref.step.rotationGroupId!==selected.rotationGroupId).length;
-          const warning=conflicts?' '+conflicts+' already have another rotating list; linking will replace it.':'';
+          const warning=conflicts?' '+conflicts+' matching '+(conflicts===1?'step already has':'steps already have')+' another rotating list; linking will replace '+(conflicts===1?'it':'them')+'.':'';
           const choice=await askMatchAction({title:"Share this rotating list?",message:'Found '+matches.length+' other exact '+(matches.length===1?'match':'matches')+' in '+matchRoutineSummary(matches)+'.'+warning,oneLabel:"Only This Step",allLabel:"Apply & Link All Matches"});
           if(choice==="cancel")return;
           if(choice==="all")linkAll.push({ids:matches.map(ref=>ref.step.id),groupId:selected.rotationGroupId});
