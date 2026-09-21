@@ -1105,3 +1105,9 @@
   .step-schedule-editor,.rotation-editor-shell{grid-row:auto;grid-column:1/-1}
 }
 
+.step-repeat-btn{display:grid;place-items:center;width:30px;height:30px;min-width:30px;padding:0;border:1px solid #b9d5ca;border-radius:999px;background:#edf8f4;color:#17664f;font-size:18px;font-weight:800;line-height:1;cursor:pointer}
+.step-repeat-btn:active{transform:scale(.96)}
+.routine-step-row.temporary-repeat-step{border-color:#b9d5ca;background:#f8fcfa}
+.repeat-step-pill{display:inline-flex;align-items:center;margin-left:6px;padding:2px 6px;border-radius:999px;background:#dff3eb;color:#17664f;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.step-repeat-editor{grid-column:1/-1;display:flex;align-items:center;gap:8px;color:#43534d;font-size:12px;font-weight:700}
+.step-repeat-editor input{width:17px;height:17px;margin:0;accent-color:#26785e}

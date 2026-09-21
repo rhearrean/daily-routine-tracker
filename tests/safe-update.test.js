@@ -10,7 +10,7 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.2\.0"/);
+assert.match(app,/version:"12\.3\.0"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
@@ -19,6 +19,7 @@ assert.match(app,/const STEP_OVERRIDE_KEY="dailyRoutineStepOverrides\.v12"/);
 assert.match(app,/const PRIORITY_KEY="dailyRoutineStepPriorities\.v12"/);
 assert.match(app,/const ROTATIONS_KEY="dailyRoutineRotations\.v12"/);
 assert.match(app,/const ROUTINE_STARTS_KEY="dailyRoutineStarts\.v12"/);
+assert.match(app,/const STEP_REPEATS_KEY="dailyRoutineStepRepeats\.v12"/);
 assert.match(app,/function migrateLegacyData\(\)/);
 assert.match(app,/localStorage\.getItem\(ROUTINES_KEY\)!==null/);
 assert.match(app,/LEGACY_HABITS_KEY/);
@@ -30,6 +31,7 @@ assert.match(app,/Retires repeat counters/);
 assert.match(app,/function normalizeRoutine/);
 assert.match(app,/lockSteps:routine\.lockSteps!==false/);
 assert.match(app,/startMode:routine\.startMode==="manual"\?"manual":"automatic"/);
+assert.match(app,/repeatable:step&&step\.repeatable===true/);
 assert.match(app,/function sortRoutines/);
 assert.match(app,/function dueRoutinesOn/);
 assert.match(app,/todayRoutineSwitch/);
@@ -69,6 +71,11 @@ assert.match(app,/stepOverrides:loadStepOverrides\(\)/);
 assert.match(app,/stepPriorities:loadPriorityCarryovers\(\)/);
 assert.match(app,/rotations:loadRotations\(\)/);
 assert.match(app,/routineStarts:loadRoutineStarts\(\)/);
+assert.match(app,/stepRepeats:loadStepRepeats\(\)/);
+assert.match(app,/function repeatStepForToday/);
+assert.match(app,/function visibleRepeatStepsForDate/);
+assert.match(app,/Can repeat at the bottom today/);
+assert.match(app,/class="step-repeat-btn/);
 assert.match(app,/function isRoutineStarted/);
 assert.match(app,/function startRoutineForToday/);
 assert.match(app,/class="primary-btn start-routine-btn"/);
@@ -114,14 +121,14 @@ assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.2\\.0"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.3\\.0"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-2-0"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.2\.0"/);
-assert.match(worker,/automatic or manual start behavior/);
-assert.match(worker,/Start Routine is pressed/);
-assert.match(worker,/Existing routines continue to start automatically/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-3-0"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.3\.0"/);
+assert.match(worker,/on-demand repeats/);
+assert.match(worker,/temporary copy at the bottom/);
+assert.match(worker,/Existing steps remain unchanged/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -149,6 +156,9 @@ assert.match(style,/\.routine-card\.current-routine\{/);
 assert.match(style,/\.routine-card\.locked-routine\{/);
 assert.match(style,/\.routine-card\.waiting-routine\{/);
 assert.match(style,/\.routine-start-panel/);
+assert.match(style,/\.step-repeat-btn\{/);
+assert.match(style,/\.repeat-step-pill\{/);
+assert.match(style,/\.step-repeat-editor\{/);
 assert.match(style,/\.routine-card-header:disabled\{/);
 assert.match(style,/\.step-schedule-editor\{/);
 assert.match(style,/\.step-day-buttons button\.selected\{/);
@@ -158,8 +168,9 @@ assert.match(style,/\.skip-review-details\.hidden\{display:none\}/);
 assert.match(style,/max-height:calc\(100dvh - 36px\)/);
 assert.match(style,/overflow-y:auto/);
 
+assert.match(backlog,/v12\.3\.0 — Repeat a Step at the Bottom/);
 assert.match(backlog,/v12\.0\.8 — Priority Next Routine/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and manual-routine-start assertions passed for v12.2.0");
+console.log("Safe update and repeat-at-bottom assertions passed for v12.3.0");

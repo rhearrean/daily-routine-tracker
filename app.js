@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.2.0",
-  build:"2026.09.21.manual-routine-start",
+  version:"12.3.0",
+  build:"2026.09.21.repeat-step-at-bottom",
   schemaVersion:8,
   releaseDate:"September 21, 2026",
   releaseNotes:[
@@ -31,7 +31,10 @@ const APP_META={
     "Includes rotating lists in backups and recovery snapshots without changing schema 8.",
     "Lets each routine start automatically or wait, collapsed, until Start Routine is pressed.",
     "Keeps later routines locked until the available routine has started and been resolved.",
-    "Resets manual-start choices the following day without changing routine schedules."
+    "Resets manual-start choices the following day without changing routine schedules.",
+    "Lets selected steps complete and add one temporary repeat to the bottom of the routine.",
+    "Allows each temporary repeat to repeat again without creating permanent duplicates.",
+    "Removes temporary repeats the following day and includes them in backups and recovery snapshots."
   ]
 };
 
@@ -42,6 +45,7 @@ const STEP_OVERRIDE_KEY="dailyRoutineStepOverrides.v12";
 const PRIORITY_KEY="dailyRoutineStepPriorities.v12";
 const ROTATIONS_KEY="dailyRoutineRotations.v12";
 const ROUTINE_STARTS_KEY="dailyRoutineStarts.v12";
+const STEP_REPEATS_KEY="dailyRoutineStepRepeats.v12";
 const SETTINGS_KEY="dailyRoutineSettings.v12";
 const LEGACY_HABITS_KEY="dailyRoutineHabits.v10_1";
 const LEGACY_COMPLETIONS_KEY="dailyRoutineCompletions.v10_1";
@@ -121,14 +125,15 @@ function uniqueDays(days){
   return [...new Set((Array.isArray(days)?days:[]).map(Number).filter(day=>day>=0&&day<=6))].sort();
 }
 function normalizeStep(step,index=0){
-  if(typeof step==="string")return{id:makeId("step-"+index),text:step.trim(),createdAt:"",days:null,rotationGroupId:""};
+  if(typeof step==="string")return{id:makeId("step-"+index),text:step.trim(),createdAt:"",days:null,rotationGroupId:"",repeatable:false};
   const days=uniqueDays(step&&step.days);
   return{
     id:String(step&&step.id||makeId("step-"+index)),
     text:String(step&&step.text||"").trim(),
     createdAt:String(step&&step.createdAt||""),
     days:days.length?days:null,
-    rotationGroupId:String(step&&step.rotationGroupId||"")
+    rotationGroupId:String(step&&step.rotationGroupId||""),
+    repeatable:step&&step.repeatable===true
   };
 }
 function normalizeRoutine(routine,index=0){
@@ -181,6 +186,33 @@ function clearExpiredRoutineStarts(){
   const dateKey=getTodayKey();
   const current=all[dateKey]&&typeof all[dateKey]==="object"?{[dateKey]:all[dateKey]}:{};
   if(JSON.stringify(all)!==JSON.stringify(current))localStorage.setItem(ROUTINE_STARTS_KEY,JSON.stringify(current));
+}
+function normalizeStepRepeat(item,index=0){
+  if(!item||typeof item!=="object")return null;
+  const date=String(item.date||"");
+  const routineId=String(item.routineId||"");
+  const text=String(item.text||"").trim();
+  if(!date||!routineId||!text)return null;
+  return{
+    id:String(item.id||makeId("repeat-"+index)),date,routineId,
+    sourceStepId:String(item.sourceStepId||""),text,
+    rotationGroupId:String(item.rotationGroupId||""),
+    createdAt:String(item.createdAt||new Date().toISOString())
+  };
+}
+function loadStepRepeats(){
+  const stored=rawLocal(STEP_REPEATS_KEY,[]);
+  return(Array.isArray(stored)?stored:[]).map(normalizeStepRepeat).filter(Boolean);
+}
+function saveStepRepeats(items){
+  localStorage.setItem(STEP_REPEATS_KEY,JSON.stringify((Array.isArray(items)?items:[]).map(normalizeStepRepeat).filter(Boolean)));
+  scheduleRecoverySnapshot("temporary step repeat changed");
+}
+function clearExpiredStepRepeats(){
+  const dateKey=getTodayKey();
+  const all=loadStepRepeats();
+  const current=all.filter(item=>item.date===dateKey);
+  if(current.length!==all.length)localStorage.setItem(STEP_REPEATS_KEY,JSON.stringify(current));
 }
 function normalizeRotationGroup(group,id=""){
   const items=(Array.isArray(group&&group.items)?group.items:[]).map((item,index)=>({
@@ -255,6 +287,7 @@ function normalizePriorityCarryover(item,index=0){
     routineId,
     sourceStepId:String(item.sourceStepId||""),
     rotationGroupId:String(item.rotationGroupId||""),
+    repeatable:item.repeatable===true,
     text,
     sourceDate,
     sourceOrder:Number.isFinite(Number(item.sourceOrder))?Number(item.sourceOrder):index,
@@ -461,7 +494,17 @@ function visiblePriorityStepsForDate(routine,dateKey){
     .sort((a,b)=>a.sourceDate.localeCompare(b.sourceDate)||a.sourceOrder-b.sourceOrder||a.queuedAt.localeCompare(b.queuedAt))
     .map(item=>({
       id:item.id,text:item.text,createdAt:"",days:null,priority:true,
-      prioritySourceDate:item.sourceDate,sourceStepId:item.sourceStepId,rotationGroupId:item.rotationGroupId||""
+      prioritySourceDate:item.sourceDate,sourceStepId:item.sourceStepId,rotationGroupId:item.rotationGroupId||"",repeatable:item.repeatable===true
+    }));
+}
+function visibleRepeatStepsForDate(routine,dateKey){
+  return loadStepRepeats()
+    .filter(item=>item.date===dateKey&&item.routineId===routine.id)
+    .sort((a,b)=>a.createdAt.localeCompare(b.createdAt))
+    .map(item=>({
+      id:item.id,text:item.text,createdAt:item.createdAt,days:null,
+      sourceStepId:item.sourceStepId,rotationGroupId:item.rotationGroupId||"",
+      repeatable:true,temporaryRepeat:true
     }));
 }
 function visibleStepsForDate(routine,dateKey){
@@ -473,7 +516,8 @@ function visibleStepsForDate(routine,dateKey){
     else steps=routine.steps.filter(step=>!step.createdAt||step.createdAt<=entry.completedAt);
   }
   const scheduledSteps=applyStepOverrides(routine,steps.filter(step=>stepRunsOn(step,dateKey)),dateKey);
-  return[...prioritySteps,...scheduledSteps];
+  const repeatSteps=visibleRepeatStepsForDate(routine,dateKey);
+  return[...prioritySteps,...scheduledSteps,...repeatSteps];
 }
 function stepSummary(routine,dateKey){
   const steps=visibleStepsForDate(routine,dateKey);
@@ -533,6 +577,7 @@ function togglePriorityNextTime(routine,step,dateKey=getTodayKey()){
     items.push(normalizePriorityCarryover({
       id:makeId("priority"),routineId:routine.id,sourceStepId:step.id,text:step.text,
       rotationGroupId:step.rotationGroupId||"",
+      repeatable:step.repeatable===true,
       sourceDate:dateKey,sourceOrder:sourceOrder<0?routine.steps.length:sourceOrder,
       queuedAt:new Date().toISOString(),claimedDate:"",completedDate:""
     }));
@@ -571,6 +616,22 @@ function setStepStatus(routine,stepId,status){
   syncRoutineProgress(routine,dateKey);
   manuallyCollapsed[routine.id]=isRoutineResolved(dateKey,routine.id);
   render();
+}
+function repeatStepForToday(routine,stepId){
+  const dateKey=getTodayKey();
+  const steps=visibleStepsForDate(routine,dateKey);
+  const index=steps.findIndex(step=>step.id===stepId);
+  const step=steps[index];
+  if(!step||!step.repeatable||getStepState(dateKey,routine.id,stepId)!=="pending")return;
+  if(routine.lockSteps&&index!==firstPendingIndex(routine,dateKey))return;
+  const repeats=loadStepRepeats();
+  repeats.push(normalizeStepRepeat({
+    id:makeId("repeat"),date:dateKey,routineId:routine.id,
+    sourceStepId:step.sourceStepId||step.id,text:step.text,
+    rotationGroupId:step.rotationGroupId||"",createdAt:new Date().toISOString()
+  }));
+  saveStepRepeats(repeats);
+  setStepStatus(routine,stepId,"done");
 }
 function pendingMatchingSteps(routine,sourceStepId,dateKey=getTodayKey()){
   const source=routine.steps.find(step=>step.id===sourceStepId);
@@ -623,6 +684,7 @@ function clearRoutineForToday(routineId){
   saveStepState(states);
   saveStepOverrides(overrides);
   savePriorityCarryovers(priorities);
+  saveStepRepeats(loadStepRepeats().filter(item=>!(item.date===dateKey&&item.routineId===routineId)));
   manuallyCollapsed[routineId]=false;
   render();
 }
@@ -684,7 +746,7 @@ function renderStepRow(routine,step,index,dateKey){
   const locked=routine.lockSteps&&state==="pending"&&index!==pendingIndex;
   const canUndo=state!=="pending"&&(!routine.lockSteps||index===lastResolved);
   const row=document.createElement("div");
-  row.className="routine-step-row "+state+(locked?" locked":"")+(step.priority?" priority-step":"");
+  row.className="routine-step-row "+state+(locked?" locked":"")+(step.priority?" priority-step":"")+(step.temporaryRepeat?" temporary-repeat-step":"");
   const checkEnabled=(state==="pending"&&!locked)||(state==="done"&&canUndo);
   const skipEnabled=(state==="pending"&&!locked)||(state==="skipped"&&canUndo);
   const checkIcon=state==="done"?"✓":state==="skipped"?"—":locked?"🔒":"";
@@ -692,12 +754,13 @@ function renderStepRow(routine,step,index,dateKey){
   const replaceCount=state==="done"&&!step.temporary&&!step.priority?pendingMatchingSteps(routine,step.id,dateKey).length:0;
   const priorityQueued=state==="skipped"&&Boolean(queuedPriorityForStep(routine.id,step.id,dateKey));
   const skipButton='<button class="step-skip-btn '+(state==="skipped"?"active":"")+'" type="button" '+(skipEnabled?"":"disabled")+' aria-label="'+(state==="skipped"?"Clear skipped ":"Skip ")+escapeHtml(step.text)+'">Skip</button>';
-  const priorityButton=state==="skipped"?'<button class="step-priority-btn '+(priorityQueued?"active":"")+'" type="button" aria-label="'+(priorityQueued?"Remove priority next time for ":"Priority next time for ")+escapeHtml(step.text)+'" title="Priority Next Time">'+(priorityQueued?"⚑":"⚐")+'</button>':"";
+  const repeatButton=step.repeatable&&state==="pending"&&!locked?'<button class="step-repeat-btn" type="button" aria-label="Complete '+escapeHtml(step.text)+' and repeat it at the bottom" title="Complete and repeat at bottom">↻</button>':"";
+  const priorityButton=state==="skipped"&&!step.temporaryRepeat?'<button class="step-priority-btn '+(priorityQueued?"active":"")+'" type="button" aria-label="'+(priorityQueued?"Remove priority next time for ":"Priority next time for ")+escapeHtml(step.text)+'" title="Priority Next Time">'+(priorityQueued?"⚑":"⚐")+'</button>':"";
   row.innerHTML=
     '<button class="routine-step-check" type="button" '+(checkEnabled?"":"disabled")+' aria-label="'+escapeHtml(checkLabel)+'"><span aria-hidden="true">'+checkIcon+'</span></button>'+
-    '<div class="routine-step-copy"><span class="routine-step-number">'+String(index+1)+'.</span><span class="routine-step-text">'+escapeHtml(step.text)+'</span>'+(step.priority?'<span class="priority-step-pill">Priority</span>':step.temporary?'<span class="temporary-step-pill">Today</span>':"")+'</div>'+
+    '<div class="routine-step-copy"><span class="routine-step-number">'+String(index+1)+'.</span><span class="routine-step-text">'+escapeHtml(step.text)+'</span>'+(step.priority?'<span class="priority-step-pill">Priority</span>':step.temporaryRepeat?'<span class="repeat-step-pill">Repeat</span>':step.temporary?'<span class="temporary-step-pill">Today</span>':"")+'</div>'+
     ((state==="pending"&&!locked)||state==="skipped"
-      ?'<div class="step-actions">'+skipButton+priorityButton+'</div>'
+      ?'<div class="step-actions">'+repeatButton+skipButton+priorityButton+'</div>'
       :replaceCount?'<button class="step-replace-btn" type="button" aria-label="Replace '+replaceCount+' remaining '+escapeHtml(step.text)+' '+(replaceCount===1?'step':'steps')+' for today">Replace</button>'
       :'<span class="routine-step-control-spacer" aria-hidden="true"></span>');
   row.querySelector(".routine-step-check").addEventListener("click",()=>{
@@ -709,6 +772,7 @@ function renderStepRow(routine,step,index,dateKey){
     else if(state==="skipped"&&canUndo)setStepStatus(routine,step.id,"pending");
   });
   row.querySelector(".step-priority-btn")?.addEventListener("click",()=>togglePriorityNextTime(routine,step,dateKey));
+  row.querySelector(".step-repeat-btn")?.addEventListener("click",()=>repeatStepForToday(routine,step.id));
   row.querySelector(".step-replace-btn")?.addEventListener("click",()=>replaceRemainingStepsForToday(routine,step.id));
   const rotation=step.temporary?null:loadRotations()[step.rotationGroupId];
   if(rotation&&rotation.items.length){
@@ -923,6 +987,7 @@ function deleteRoutine(id){
   saveStepState(states);
   saveStepOverrides(overrides);
   savePriorityCarryovers(loadPriorityCarryovers().filter(item=>item.routineId!==id));
+  saveStepRepeats(loadStepRepeats().filter(item=>item.routineId!==id));
   const starts=loadRoutineStarts();
   Object.keys(starts).forEach(dateKey=>{if(starts[dateKey])delete starts[dateKey][id]});
   saveRoutineStarts(starts);
@@ -1055,7 +1120,7 @@ function removeRotationItem(groupId,itemId){
 }
 function duplicateEditorStep(index){
   const source=selectedSteps[index];
-  selectedSteps.splice(index+1,0,{id:makeId("step"),text:source.text,createdAt:new Date().toISOString(),days:Array.isArray(source.days)?[...source.days]:null,rotationGroupId:source.rotationGroupId||"",originalText:"",originalRotationGroupId:""});
+  selectedSteps.splice(index+1,0,{id:makeId("step"),text:source.text,createdAt:new Date().toISOString(),days:Array.isArray(source.days)?[...source.days]:null,rotationGroupId:source.rotationGroupId||"",repeatable:source.repeatable===true,originalText:"",originalRotationGroupId:""});
   renderStepsEditor();
 }
 async function requestRemoveEditorStep(index){
@@ -1084,12 +1149,13 @@ function renderStepsEditor(){
     const row=document.createElement("div");
     row.className="routine-step-editor-row";
     const stepDays=uniqueDays(step.days);
-    row.innerHTML='<input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="small-btn duplicate-step-btn">Copy</button><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step">✕</button><div class="step-schedule-editor"><label><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every routine day</label><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div></div><div class="rotation-editor-shell">'+rotationEditorMarkup(step)+'</div>';
+    row.innerHTML='<input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="small-btn duplicate-step-btn">Copy</button><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step">✕</button><label class="step-repeat-editor"><input class="step-repeatable" type="checkbox" '+(step.repeatable?"checked":"")+' /> Can repeat at the bottom today</label><div class="step-schedule-editor"><label><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every routine day</label><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div></div><div class="rotation-editor-shell">'+rotationEditorMarkup(step)+'</div>';
     row.querySelector(".step-name-input").addEventListener("input",event=>selectedSteps[index].text=event.target.value);
     row.querySelector(".step-up").addEventListener("click",()=>moveEditorStep(index,-1));
     row.querySelector(".step-down").addEventListener("click",()=>moveEditorStep(index,1));
     row.querySelector(".duplicate-step-btn").addEventListener("click",()=>duplicateEditorStep(index));
     row.querySelector(".remove-step-btn").addEventListener("click",()=>requestRemoveEditorStep(index));
+    row.querySelector(".step-repeatable").addEventListener("change",event=>selectedSteps[index].repeatable=event.target.checked);
     row.querySelector(".add-rotation-btn")?.addEventListener("click",()=>addRotationToStep(index));
     row.querySelector(".add-rotation-item")?.addEventListener("click",()=>{
       const group=selectedRotations[step.rotationGroupId];
@@ -1123,7 +1189,7 @@ function moveEditorStep(index,direction){
   E.stepsEditorList.querySelectorAll(".step-name-input")[target]?.focus();
 }
 function addEditorStep(){
-  selectedSteps.push({id:makeId("step"),text:"",createdAt:new Date().toISOString(),days:null,rotationGroupId:"",originalText:"",originalRotationGroupId:""});
+  selectedSteps.push({id:makeId("step"),text:"",createdAt:new Date().toISOString(),days:null,rotationGroupId:"",repeatable:false,originalText:"",originalRotationGroupId:""});
   renderStepsEditor();
   const inputs=E.stepsEditorList.querySelectorAll(".step-name-input");
   inputs[inputs.length-1]?.focus();
@@ -1231,6 +1297,7 @@ async function saveRoutineFromForm(event){
     saveRoutines(routines);
     saveRotations(rotations);
     savePriorityCarryovers(priorities);
+    saveStepRepeats(loadStepRepeats().filter(item=>!pendingDeleteStepIds.has(item.sourceStepId)));
     resetRoutineForm();
     closeRoutineEditor();
     render();
@@ -1239,7 +1306,7 @@ async function saveRoutineFromForm(event){
 function openPanel(panel){panel.classList.remove("hidden");document.body.style.overflow="hidden"}
 function closePanel(panel){panel.classList.add("hidden");document.body.style.overflow=""}
 function resetToday(){
-  if(!confirm("Reset all routine progress, manual starts, temporary replacements, and priority choices for today?"))return;
+  if(!confirm("Reset all routine progress, manual starts, temporary replacements, temporary repeats, and priority choices for today?"))return;
   const dateKey=getTodayKey();
   const progress=loadProgress();
   const states=loadStepState();
@@ -1257,6 +1324,7 @@ function resetToday(){
   saveStepOverrides(overrides);
   savePriorityCarryovers(priorities);
   saveRoutineStarts(starts);
+  saveStepRepeats(loadStepRepeats().filter(item=>item.date!==dateKey));
   manuallyCollapsed={};
   skipReviewExpanded=false;
   endOfDayRoutineExpanded=false;
@@ -1283,6 +1351,7 @@ function makeBackupPayload(){
     stepState:loadStepState(),
     stepOverrides:loadStepOverrides(),
     stepPriorities:loadPriorityCarryovers(),
+    stepRepeats:loadStepRepeats(),
     rotations:loadRotations(),
     routineStarts:loadRoutineStarts(),
     settings:loadSettings(),
@@ -1297,6 +1366,7 @@ function importBackupPayload(parsed){
     localStorage.setItem(STEP_STATE_KEY,JSON.stringify(parsed.stepState&&typeof parsed.stepState==="object"?parsed.stepState:{}));
     localStorage.setItem(STEP_OVERRIDE_KEY,JSON.stringify(parsed.stepOverrides&&typeof parsed.stepOverrides==="object"?parsed.stepOverrides:{}));
     localStorage.setItem(PRIORITY_KEY,JSON.stringify(Array.isArray(parsed.stepPriorities)?parsed.stepPriorities.map(normalizePriorityCarryover).filter(Boolean):[]));
+    localStorage.setItem(STEP_REPEATS_KEY,JSON.stringify(Array.isArray(parsed.stepRepeats)?parsed.stepRepeats.map(normalizeStepRepeat).filter(Boolean):[]));
     localStorage.setItem(ROTATIONS_KEY,JSON.stringify(parsed.rotations&&typeof parsed.rotations==="object"&&!Array.isArray(parsed.rotations)?parsed.rotations:{}));
     localStorage.setItem(ROUTINE_STARTS_KEY,JSON.stringify(parsed.routineStarts&&typeof parsed.routineStarts==="object"&&!Array.isArray(parsed.routineStarts)?parsed.routineStarts:{}));
     localStorage.setItem(SETTINGS_KEY,JSON.stringify(parsed.settings&&typeof parsed.settings==="object"?parsed.settings:{}));
@@ -1313,11 +1383,13 @@ function importBackupPayload(parsed){
     localStorage.removeItem(STEP_STATE_KEY);
     localStorage.removeItem(STEP_OVERRIDE_KEY);
     localStorage.removeItem(PRIORITY_KEY);
+    localStorage.removeItem(STEP_REPEATS_KEY);
     localStorage.removeItem(SETTINGS_KEY);
     migrateLegacyData();
   }else throw new Error("Backup is missing routines or legacy habits.");
   clearExpiredStepOverrides();
   clearExpiredRoutineStarts();
+  clearExpiredStepRepeats();
   manuallyCollapsed={};
   resetRoutineForm();
   render();
@@ -1574,6 +1646,7 @@ migrateLegacyData();
 clearExpiredTodayRoutineSwitch();
 clearExpiredStepOverrides();
 clearExpiredRoutineStarts();
+clearExpiredStepRepeats();
 formatDateLabel();
 resetRoutineForm();
 wireEvents();
@@ -1586,6 +1659,7 @@ document.addEventListener("visibilitychange",()=>{
     clearExpiredTodayRoutineSwitch();
     clearExpiredStepOverrides();
     clearExpiredRoutineStarts();
+    clearExpiredStepRepeats();
     formatDateLabel();
     render();
   }

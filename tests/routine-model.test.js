@@ -35,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,loadStepRepeats,saveStepRepeats,clearExpiredStepRepeats,visibleRepeatStepsForDate,repeatStepForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -277,4 +277,33 @@ api.clearExpiredRoutineStarts();
 assert.equal(api.loadRoutineStarts()["2000-01-01"],undefined,"Manual-start state must expire after its day");
 assert.ok(api.makeBackupPayload().routineStarts[todayKey]["manual-next"],"Manual-start state must be included in backups");
 
-console.log("Routine migration, rotation, duplicate step, schedule, and lock assertions passed");
+localStorage.clear();
+const repeatAtBottom=api.normalizeRoutine({id:"repeat-bottom",name:"Busy Day",schedule:"daily",lockSteps:true,steps:[
+  {id:"dishes",text:"Dishes",repeatable:true,rotationGroupId:"shared"},
+  {id:"tidy",text:"Tidy counter"}
+]});
+api.saveRoutines([repeatAtBottom]);
+api.repeatStepForToday(repeatAtBottom,"dishes");
+let repeatSteps=api.visibleStepsForDate(repeatAtBottom,todayKey);
+assert.equal(api.getStepState(todayKey,"repeat-bottom","dishes"),"done","Repeat completes the current occurrence");
+assert.equal(repeatSteps.length,3,"Repeat adds exactly one temporary occurrence");
+assert.equal(repeatSteps[2].temporaryRepeat,true,"The temporary repeat is appended after permanent steps");
+assert.equal(repeatSteps[2].rotationGroupId,"shared","Temporary repeats preserve the shared rotation group");
+assert.equal(api.isRoutineDone(todayKey,"repeat-bottom"),false,"A pending repeat keeps the routine unresolved");
+api.repeatStepForToday(repeatAtBottom,repeatSteps[2].id);
+assert.equal(api.loadStepRepeats().length,1,"A locked repeat cannot bypass an earlier pending step");
+api.setStepStatus(repeatAtBottom,"tidy","done");
+api.repeatStepForToday(repeatAtBottom,repeatSteps[2].id);
+repeatSteps=api.visibleStepsForDate(repeatAtBottom,todayKey);
+assert.equal(api.loadStepRepeats().length,2,"A temporary repeat can repeat again when unlocked");
+assert.equal(repeatSteps.at(-1).temporaryRepeat,true);
+assert.equal(repeatSteps.at(-1).text,"Dishes");
+api.setStepStatus(repeatAtBottom,repeatSteps.at(-1).id,"done");
+assert.equal(api.isRoutineDone(todayKey,"repeat-bottom"),true,"Normal completion ends the repeat chain");
+assert.equal(api.visibleStepsForDate(repeatAtBottom,tomorrowKey).length,2,"Temporary repeats disappear the next day");
+assert.equal(api.makeBackupPayload().stepRepeats.length,2,"Temporary repeats are included in backups");
+api.saveStepRepeats([...api.loadStepRepeats(),{id:"old-repeat",date:"2000-01-01",routineId:"repeat-bottom",sourceStepId:"dishes",text:"Dishes"}]);
+api.clearExpiredStepRepeats();
+assert.equal(api.loadStepRepeats().some(item=>item.id==="old-repeat"),false,"Expired temporary repeats are removed");
+
+console.log("Routine migration, rotation, duplicate step, schedule, lock, and repeat assertions passed");

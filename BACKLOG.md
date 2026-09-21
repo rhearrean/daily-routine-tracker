@@ -4,6 +4,17 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.3.0 — Repeat a Step at the Bottom
+
+- Let selected permanent steps repeat on demand without creating permanent duplicates.
+- Complete the current occurrence and append one temporary copy to the bottom of the same routine.
+- Allow a temporary copy to repeat again, while normal completion or Skip ends the chain.
+- Keep the routine open while its temporary copy remains pending.
+- Remove temporary copies the following day and restore the normal routine.
+- Preserve shared rotating substeps on temporary copies.
+- Include temporary repeats in exports and automatic recovery snapshots.
+- Keep schema 8 and all existing saved data intact.
+
 ### v12.2.0 — Manual Routine Start
 
 - Let every routine choose **Start automatically** or **Wait until I start it**.
