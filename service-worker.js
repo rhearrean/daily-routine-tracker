@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v12-1-1";
+const CACHE_NAME="daily-routine-v12-2-0";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"12.1.1",summary:"Adds shared rotating substeps and safer controls for matching steps.",notes:["Add an optional FIFO list of rooms or areas beneath any parent step.","Tap a rotating item on Today to move it to the end of the shared list.","Rotating items are reminders and do not block completing or skipping the parent step.","Copy a step with its weekday schedule and shared rotating list, without copying progress.","Choose only this step or every exact match when renaming, linking a new rotation, or deleting.","Names match case-insensitively after extra spaces are removed.","Shared rotation changes appear on every linked duplicate.","Rotating lists are included in exports and automatic recovery snapshots.","Existing routines, history, and schema 8 data remain intact."]};
-const FILES_TO_CACHE=["./index.html?v=12.1.1","./style.css?v=12.1.1","./app.js?v=12.1.1","./manifest.json?v=12.1.1","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"12.2.0",summary:"Adds automatic or manual start behavior for each routine.",notes:["Choose Start automatically or Wait until I start it in each routine's editor.","A manual routine unlocks in sequence but remains collapsed until Start Routine is pressed.","Starting it expands the routine and keeps later routines locked until it is resolved.","Completing or skipping the routine collapses it and makes the next routine available.","Manual-start state resets the following day without changing the saved schedule.","Existing routines continue to start automatically unless changed.","Manual-start state is included in backups and recovery snapshots.","No routines, progress, history, or schema 8 data is cleared."]};
+const FILES_TO_CACHE=["./index.html?v=12.2.0","./style.css?v=12.2.0","./app.js?v=12.2.0","./manifest.json?v=12.2.0","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.1.1"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.2.0"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));

@@ -4,6 +4,18 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.2.0 — Manual Routine Start
+
+- Let every routine choose **Start automatically** or **Wait until I start it**.
+- Keep an available manual routine collapsed until **Start Routine** is pressed.
+- Lock later routines until the available routine is started and resolved.
+- Expand a manual routine immediately when it is started.
+- Collapse a resolved routine and make the next routine available using its own start setting.
+- Reset manual-start state the following day without changing schedules.
+- Keep existing routines on automatic start unless explicitly changed.
+- Include manual-start state in exports and automatic recovery snapshots.
+- Keep schema 8 and all existing saved data intact.
+
 ### v12.1.1 — Shared Rotating Substeps
 
 - Add an optional FIFO reminder list beneath a parent step.

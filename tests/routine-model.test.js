@@ -35,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -252,5 +252,29 @@ assert.equal(api.normalizedStepName("  Declutter   HOUSE "),"declutter house","E
 assert.notEqual(api.normalizedStepName("Declutter Garage"),api.normalizedStepName("Declutter House"));
 const rotationBackup=api.makeBackupPayload();
 assert.equal(rotationBackup.rotations.shared.queue[2],"kitchen","Rotating queues must be included in backups");
+
+localStorage.clear();
+const startRoutines=[
+  api.normalizeRoutine({id:"auto-first",name:"Morning",schedule:"daily",order:10,startMode:"automatic",steps:[{id:"morning-step",text:"Morning step"}]}),
+  api.normalizeRoutine({id:"manual-next",name:"Home",schedule:"daily",order:20,startMode:"manual",steps:[{id:"home-step",text:"Home step"}]}),
+  api.normalizeRoutine({id:"manual-last",name:"Evening",schedule:"daily",order:30,startMode:"manual",steps:[{id:"evening-step",text:"Evening step"}]})
+];
+api.saveRoutines(startRoutines);
+assert.equal(startRoutines[0].startMode,"automatic","Existing behavior stays automatic by default");
+assert.equal(startRoutines[1].startMode,"manual");
+assert.equal(api.isRoutineStarted(startRoutines[1],todayKey),false,"A manual routine waits until explicitly started");
+api.setStepStatus(startRoutines[0],"morning-step","done");
+assert.equal(api.currentRoutineForDate(api.dueRoutinesOn(today),todayKey).id,"manual-next","The next unresolved manual routine becomes available in order");
+api.startRoutineForToday("manual-next");
+assert.equal(api.isRoutineStarted(startRoutines[1],todayKey),true,"Start Routine activates the available manual routine");
+assert.ok(api.loadRoutineStarts()[todayKey]["manual-next"],"Manual starts are stored for the current day");
+assert.equal(api.isRoutineStarted(startRoutines[2],todayKey),false,"A later manual routine remains unstarted");
+api.setStepStatus(startRoutines[1],"home-step","done");
+assert.equal(api.currentRoutineForDate(api.dueRoutinesOn(today),todayKey).id,"manual-last","Resolving a started routine makes the next routine available");
+assert.equal(api.isRoutineStarted(startRoutines[2],todayKey),false);
+api.saveRoutineStarts({...api.loadRoutineStarts(),"2000-01-01":{"manual-last":"old"}});
+api.clearExpiredRoutineStarts();
+assert.equal(api.loadRoutineStarts()["2000-01-01"],undefined,"Manual-start state must expire after its day");
+assert.ok(api.makeBackupPayload().routineStarts[todayKey]["manual-next"],"Manual-start state must be included in backups");
 
 console.log("Routine migration, rotation, duplicate step, schedule, and lock assertions passed");

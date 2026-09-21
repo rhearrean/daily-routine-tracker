@@ -1,8 +1,8 @@
 const APP_META={
-  version:"12.1.1",
-  build:"2026.09.19.rotating-substeps-1",
+  version:"12.2.0",
+  build:"2026.09.21.manual-routine-start",
   schemaVersion:8,
-  releaseDate:"September 19, 2026",
+  releaseDate:"September 21, 2026",
   releaseNotes:[
     "Rebuilds Today around ordered routines instead of clock-based time blocks.",
     "Each routine contains ordered steps, including duplicate step names.",
@@ -28,7 +28,10 @@ const APP_META={
     "Adds optional rotating substeps that move to the end of a shared FIFO list when tapped.",
     "Duplicates a step with its schedule and shared rotating list, without copying progress.",
     "Offers This Step or All Exact Matches when renaming, linking rotations, or deleting matching steps.",
-    "Includes rotating lists in backups and recovery snapshots without changing schema 8."
+    "Includes rotating lists in backups and recovery snapshots without changing schema 8.",
+    "Lets each routine start automatically or wait, collapsed, until Start Routine is pressed.",
+    "Keeps later routines locked until the available routine has started and been resolved.",
+    "Resets manual-start choices the following day without changing routine schedules."
   ]
 };
 
@@ -38,6 +41,7 @@ const STEP_STATE_KEY="dailyRoutineStepState.v12";
 const STEP_OVERRIDE_KEY="dailyRoutineStepOverrides.v12";
 const PRIORITY_KEY="dailyRoutineStepPriorities.v12";
 const ROTATIONS_KEY="dailyRoutineRotations.v12";
+const ROUTINE_STARTS_KEY="dailyRoutineStarts.v12";
 const SETTINGS_KEY="dailyRoutineSettings.v12";
 const LEGACY_HABITS_KEY="dailyRoutineHabits.v10_1";
 const LEGACY_COMPLETIONS_KEY="dailyRoutineCompletions.v10_1";
@@ -68,7 +72,7 @@ const E={
   routineEditorSheet:$("routineEditorSheet"),closeRoutineEditorBtn:$("closeRoutineEditorBtn"),
   routineForm:$("routineForm"),formModeLabel:$("formModeLabel"),formTitle:$("formTitle"),
   routineName:$("routineName"),routineSchedule:$("routineSchedule"),customDays:$("customDays"),
-  lockSteps:$("lockSteps"),routineSnoozeUntil:$("routineSnoozeUntil"),addStepBtn:$("addStepBtn"),
+  lockSteps:$("lockSteps"),routineStartMode:$("routineStartMode"),routineSnoozeUntil:$("routineSnoozeUntil"),addStepBtn:$("addStepBtn"),
   stepsEditorList:$("stepsEditorList"),saveRoutineBtn:$("saveRoutineBtn"),cancelEditBtn:$("cancelEditBtn"),
   matchActionSheet:$("matchActionSheet"),matchActionTitle:$("matchActionTitle"),matchActionMessage:$("matchActionMessage"),
   matchActionOneBtn:$("matchActionOneBtn"),matchActionAllBtn:$("matchActionAllBtn"),matchActionCancelBtn:$("matchActionCancelBtn"),
@@ -137,6 +141,7 @@ function normalizeRoutine(routine,index=0){
     days:uniqueDays(routine.days),
     order:Number.isFinite(Number(routine.order))?Number(routine.order):(index+1)*10,
     lockSteps:routine.lockSteps!==false,
+    startMode:routine.startMode==="manual"?"manual":"automatic",
     paused:routine.paused===true,
     pausePeriods:Array.isArray(routine.pausePeriods)?routine.pausePeriods.map(period=>({
       start:String(period&&period.start||""),end:String(period&&period.end||"")
@@ -162,6 +167,20 @@ function loadRoutines(){
 function saveRoutines(routines){
   localStorage.setItem(ROUTINES_KEY,JSON.stringify(sortRoutines(routines)));
   scheduleRecoverySnapshot("routines changed");
+}
+function loadRoutineStarts(){
+  const stored=rawLocal(ROUTINE_STARTS_KEY,{});
+  return stored&&typeof stored==="object"&&!Array.isArray(stored)?stored:{};
+}
+function saveRoutineStarts(starts){
+  localStorage.setItem(ROUTINE_STARTS_KEY,JSON.stringify(starts&&typeof starts==="object"?starts:{}));
+  scheduleRecoverySnapshot("routine start changed");
+}
+function clearExpiredRoutineStarts(){
+  const all=loadRoutineStarts();
+  const dateKey=getTodayKey();
+  const current=all[dateKey]&&typeof all[dateKey]==="object"?{[dateKey]:all[dateKey]}:{};
+  if(JSON.stringify(all)!==JSON.stringify(current))localStorage.setItem(ROUTINE_STARTS_KEY,JSON.stringify(current));
 }
 function normalizeRotationGroup(group,id=""){
   const items=(Array.isArray(group&&group.items)?group.items:[]).map((item,index)=>({
@@ -620,6 +639,26 @@ function getDayProgress(date=new Date()){
 function currentRoutineForDate(routines,dateKey){
   return routines.find(routine=>!isRoutineResolved(dateKey,routine.id))||null;
 }
+function routineHasActivity(routine,dateKey){
+  const entry=progressEntry(dateKey,routine.id);
+  return Boolean(entry)||visibleStepsForDate(routine,dateKey).some(step=>getStepState(dateKey,routine.id,step.id)!=="pending");
+}
+function isRoutineStarted(routine,dateKey=getTodayKey()){
+  if(routine.startMode!=="manual")return true;
+  return Boolean(loadRoutineStarts()[dateKey]?.[routine.id])||routineHasActivity(routine,dateKey);
+}
+function startRoutineForToday(routineId){
+  const dateKey=getTodayKey();
+  const due=dueRoutinesOn(new Date());
+  const next=currentRoutineForDate(due,dateKey);
+  if(!next||next.id!==routineId||next.startMode!=="manual")return;
+  const starts=loadRoutineStarts();
+  starts[dateKey]=starts[dateKey]||{};
+  starts[dateKey][routineId]=new Date().toISOString();
+  saveRoutineStarts(starts);
+  manuallyCollapsed[routineId]=false;
+  render();
+}
 
 function formatDateLabel(){
   const date=new Date();
@@ -698,25 +737,29 @@ function renderRoutineList(){
     const done=isRoutineDone(dateKey,routine.id);
     const skipped=isRoutineSkipped(dateKey,routine.id);
     const complete=done||skipped;
-    const isCurrent=Boolean(currentRoutine&&routine.id===currentRoutine.id);
-    const routineLocked=Boolean(currentRoutine&&!complete&&!isCurrent);
+    const isNext=Boolean(currentRoutine&&routine.id===currentRoutine.id);
+    const waitingToStart=Boolean(isNext&&!complete&&!isRoutineStarted(routine,dateKey));
+    const isCurrent=Boolean(isNext&&!waitingToStart);
+    const routineLocked=Boolean(currentRoutine&&!complete&&!isNext);
     const defaultCollapsed=complete&&loadSettings().autoCollapseCompletedRoutines!==false;
-    const collapsed=routineLocked?true:isCurrent?false:manuallyCollapsed[routine.id]===undefined?defaultCollapsed:manuallyCollapsed[routine.id];
+    const collapsed=routineLocked||waitingToStart?true:isCurrent?false:manuallyCollapsed[routine.id]===undefined?defaultCollapsed:manuallyCollapsed[routine.id];
     const card=document.createElement("article");
-    card.className="routine-card "+(complete?"completed-routine ":"")+(isCurrent?"current-routine ":"")+(routineLocked?"locked-routine ":"")+(collapsed?"collapsed":"");
-    const status=routineLocked?"Locked · Finish "+currentRoutine.name+" first":skipped?"Skipped":summary.resolved+"/"+summary.total+" steps"+(summary.skipped?" · "+summary.skipped+" skipped":"");
+    card.className="routine-card "+(complete?"completed-routine ":"")+(isCurrent?"current-routine ":"")+(waitingToStart?"waiting-routine ":"")+(routineLocked?"locked-routine ":"")+(collapsed?"collapsed":"");
+    const status=routineLocked?"Locked · "+(isRoutineStarted(currentRoutine,dateKey)?"Finish ":"Start ")+currentRoutine.name+" first":waitingToStart?"Ready when you are · Manual start":skipped?"Skipped":summary.resolved+"/"+summary.total+" steps"+(summary.skipped?" · "+summary.skipped+" skipped":"");
     card.innerHTML=
-      '<button class="routine-card-header" type="button" aria-expanded="'+String(!collapsed)+'" '+(routineLocked?'disabled aria-label="Locked routine '+escapeHtml(routine.name)+'"':isCurrent?'aria-disabled="true"':"")+'>'+
-        '<span class="routine-order">'+(routineLocked?"🔒":String(index+1))+'</span>'+
+      '<button class="routine-card-header" type="button" aria-expanded="'+String(!collapsed)+'" '+(routineLocked?'disabled aria-label="Locked routine '+escapeHtml(routine.name)+'"':waitingToStart?'disabled aria-label="'+escapeHtml(routine.name)+' is ready to start"':isCurrent?'aria-disabled="true"':"")+'>'+
+        '<span class="routine-order">'+(routineLocked?"🔒":waitingToStart?"▶":String(index+1))+'</span>'+
         '<span class="routine-card-copy"><strong>'+escapeHtml(routine.name)+(complete?" ✓":"")+'</strong><small>'+escapeHtml(status)+(routine.lockSteps?" · In order":" · Any order")+'</small></span>'+
         '<span class="routine-chevron">'+(collapsed?"▶":"▼")+'</span>'+
       '</button>'+
+      '<div class="routine-start-panel">'+(waitingToStart?'<button class="primary-btn start-routine-btn" type="button">Start Routine</button><small>This routine will open and stay active until it is resolved.</small>':"")+'</div>'+
       '<div class="routine-card-body"></div>';
     if(complete)card.querySelector(".routine-card-header").addEventListener("click",()=>{
         manuallyCollapsed[routine.id]=!collapsed;
         render();
       });
     const body=card.querySelector(".routine-card-body");
+    card.querySelector(".start-routine-btn")?.addEventListener("click",()=>startRoutineForToday(routine.id));
     if(skipped){
       body.innerHTML='<p class="helper-text">This routine was skipped before the v12 migration.</p><button class="small-btn clear-routine-btn" type="button">Clear Skipped Routine</button>';
       body.querySelector(".clear-routine-btn").addEventListener("click",()=>clearRoutineForToday(routine.id));
@@ -880,6 +923,9 @@ function deleteRoutine(id){
   saveStepState(states);
   saveStepOverrides(overrides);
   savePriorityCarryovers(loadPriorityCarryovers().filter(item=>item.routineId!==id));
+  const starts=loadRoutineStarts();
+  Object.keys(starts).forEach(dateKey=>{if(starts[dateKey])delete starts[dateKey][id]});
+  saveRoutineStarts(starts);
   render();
 }
 function renderAllRoutines(){
@@ -895,7 +941,7 @@ function renderAllRoutines(){
     row.className="habit-row compact-habit-row "+(inactive?"snoozed-habit":"");
     const stepCount=routine.steps.length+' '+(routine.steps.length===1?'step':'steps');
     row.innerHTML=
-      '<div class="habit-row-main"><div class="compact-habit-title"><strong>'+escapeHtml(routine.name)+'</strong>'+(inactive?'<span class="habit-status-pill">'+(routine.paused?"Paused":"Until "+snoozeLabel(routine))+'</span>':"")+'</div><small>#'+(index+1)+' · '+escapeHtml(scheduleLabel(routine))+' · '+stepCount+' · '+(routine.lockSteps?"In order":"Any order")+'</small></div>'+
+      '<div class="habit-row-main"><div class="compact-habit-title"><strong>'+escapeHtml(routine.name)+'</strong>'+(inactive?'<span class="habit-status-pill">'+(routine.paused?"Paused":"Until "+snoozeLabel(routine))+'</span>':"")+'</div><small>#'+(index+1)+' · '+escapeHtml(scheduleLabel(routine))+' · '+stepCount+' · '+(routine.lockSteps?"In order":"Any order")+' · '+(routine.startMode==="manual"?"Manual start":"Auto start")+'</small></div>'+
       '<div class="habit-actions compact-habit-actions"><div class="reorder-actions"><button class="reorder-btn move-up-btn" type="button" '+(index===0?"disabled":"")+'>↑</button><button class="reorder-btn move-down-btn" type="button" '+(index===routines.length-1?"disabled":"")+'>↓</button></div><button class="small-btn pause-toggle-btn" type="button">'+(inactive?"Resume":"Pause")+'</button><button class="edit-btn" type="button">Edit</button><button class="danger-btn compact-delete-btn" type="button">✕</button></div>';
     row.querySelector(".move-up-btn").addEventListener("click",()=>moveRoutine(routine.id,-1));
     row.querySelector(".move-down-btn").addEventListener("click",()=>moveRoutine(routine.id,1));
@@ -1091,6 +1137,7 @@ function resetRoutineForm(){
   E.routineName.value="";
   E.routineSchedule.value="daily";
   E.lockSteps.checked=true;
+  E.routineStartMode.value="automatic";
   E.routineSnoozeUntil.value="";
   E.customDays.classList.add("hidden");
   setSelectedDays([]);
@@ -1119,6 +1166,7 @@ function startEditRoutine(id){
   E.routineName.value=routine.name;
   E.routineSchedule.value=routine.schedule;
   E.lockSteps.checked=routine.lockSteps;
+  E.routineStartMode.value=routine.startMode||"automatic";
   E.routineSnoozeUntil.value=routine.snoozeUntil||"";
   E.customDays.classList.toggle("hidden",routine.schedule!=="custom");
   setSelectedDays(routine.days);
@@ -1166,9 +1214,9 @@ async function saveRoutineFromForm(event){
     routines=routines.map(routine=>({...routine,steps:routine.steps.filter(step=>!pendingDeleteStepIds.has(step.id))}));
     if(editingRoutineId){
       const routineIndex=routines.findIndex(routine=>routine.id===editingRoutineId);
-      if(routineIndex>=0)routines[routineIndex]={...routines[routineIndex],name,schedule,days:schedule==="custom"?selectedDays:[],lockSteps:E.lockSteps.checked,snoozeUntil:E.routineSnoozeUntil.value,steps};
+      if(routineIndex>=0)routines[routineIndex]={...routines[routineIndex],name,schedule,days:schedule==="custom"?selectedDays:[],lockSteps:E.lockSteps.checked,startMode:E.routineStartMode.value,snoozeUntil:E.routineSnoozeUntil.value,steps};
     }else{
-      routines.push(normalizeRoutine({id:makeId(name),name,schedule,days:schedule==="custom"?selectedDays:[],order:(routines.length+1)*10,lockSteps:E.lockSteps.checked,snoozeUntil:E.routineSnoozeUntil.value,steps}));
+      routines.push(normalizeRoutine({id:makeId(name),name,schedule,days:schedule==="custom"?selectedDays:[],order:(routines.length+1)*10,lockSteps:E.lockSteps.checked,startMode:E.routineStartMode.value,snoozeUntil:E.routineSnoozeUntil.value,steps}));
     }
     renameAll.forEach(operation=>routines.forEach(routine=>routine.steps.forEach(step=>{if(operation.ids.includes(step.id))step.text=operation.text})));
     linkAll.forEach(operation=>routines.forEach(routine=>routine.steps.forEach(step=>{if(operation.ids.includes(step.id))step.rotationGroupId=operation.groupId})));
@@ -1191,7 +1239,7 @@ async function saveRoutineFromForm(event){
 function openPanel(panel){panel.classList.remove("hidden");document.body.style.overflow="hidden"}
 function closePanel(panel){panel.classList.add("hidden");document.body.style.overflow=""}
 function resetToday(){
-  if(!confirm("Reset all routine progress, temporary replacements, and priority choices for today?"))return;
+  if(!confirm("Reset all routine progress, manual starts, temporary replacements, and priority choices for today?"))return;
   const dateKey=getTodayKey();
   const progress=loadProgress();
   const states=loadStepState();
@@ -1199,6 +1247,8 @@ function resetToday(){
   delete progress[dateKey];
   delete states[dateKey];
   delete overrides[dateKey];
+  const starts=loadRoutineStarts();
+  delete starts[dateKey];
   const priorities=loadPriorityCarryovers()
     .filter(item=>item.sourceDate!==dateKey)
     .map(item=>item.claimedDate===dateKey?{...item,completedDate:""}:item);
@@ -1206,6 +1256,7 @@ function resetToday(){
   saveStepState(states);
   saveStepOverrides(overrides);
   savePriorityCarryovers(priorities);
+  saveRoutineStarts(starts);
   manuallyCollapsed={};
   skipReviewExpanded=false;
   endOfDayRoutineExpanded=false;
@@ -1233,6 +1284,7 @@ function makeBackupPayload(){
     stepOverrides:loadStepOverrides(),
     stepPriorities:loadPriorityCarryovers(),
     rotations:loadRotations(),
+    routineStarts:loadRoutineStarts(),
     settings:loadSettings(),
     legacyArchive:legacyArchive()
   };
@@ -1246,6 +1298,7 @@ function importBackupPayload(parsed){
     localStorage.setItem(STEP_OVERRIDE_KEY,JSON.stringify(parsed.stepOverrides&&typeof parsed.stepOverrides==="object"?parsed.stepOverrides:{}));
     localStorage.setItem(PRIORITY_KEY,JSON.stringify(Array.isArray(parsed.stepPriorities)?parsed.stepPriorities.map(normalizePriorityCarryover).filter(Boolean):[]));
     localStorage.setItem(ROTATIONS_KEY,JSON.stringify(parsed.rotations&&typeof parsed.rotations==="object"&&!Array.isArray(parsed.rotations)?parsed.rotations:{}));
+    localStorage.setItem(ROUTINE_STARTS_KEY,JSON.stringify(parsed.routineStarts&&typeof parsed.routineStarts==="object"&&!Array.isArray(parsed.routineStarts)?parsed.routineStarts:{}));
     localStorage.setItem(SETTINGS_KEY,JSON.stringify(parsed.settings&&typeof parsed.settings==="object"?parsed.settings:{}));
   }else if(Array.isArray(parsed.habits)){
     localStorage.setItem(LEGACY_HABITS_KEY,JSON.stringify(parsed.habits));
@@ -1253,6 +1306,7 @@ function importBackupPayload(parsed){
     localStorage.setItem(LEGACY_BLOCKS_KEY,JSON.stringify(parsed.blocks||parsed.timeBlocks||[]));
     localStorage.setItem(LEGACY_SETTINGS_KEY,JSON.stringify(parsed.settings||{}));
     localStorage.removeItem(ROTATIONS_KEY);
+    localStorage.removeItem(ROUTINE_STARTS_KEY);
     localStorage.setItem(LEGACY_STEPS_KEY,JSON.stringify(parsed.routineStepState||{}));
     localStorage.removeItem(ROUTINES_KEY);
     localStorage.removeItem(PROGRESS_KEY);
@@ -1263,6 +1317,7 @@ function importBackupPayload(parsed){
     migrateLegacyData();
   }else throw new Error("Backup is missing routines or legacy habits.");
   clearExpiredStepOverrides();
+  clearExpiredRoutineStarts();
   manuallyCollapsed={};
   resetRoutineForm();
   render();
@@ -1518,6 +1573,7 @@ function wireEvents(){
 migrateLegacyData();
 clearExpiredTodayRoutineSwitch();
 clearExpiredStepOverrides();
+clearExpiredRoutineStarts();
 formatDateLabel();
 resetRoutineForm();
 wireEvents();
@@ -1529,6 +1585,7 @@ document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible"){
     clearExpiredTodayRoutineSwitch();
     clearExpiredStepOverrides();
+    clearExpiredRoutineStarts();
     formatDateLabel();
     render();
   }
