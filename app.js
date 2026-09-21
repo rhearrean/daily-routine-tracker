@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.3.1",
-  build:"2026.09.21.repeat-step-name-visibility",
+  version:"12.4.0",
+  build:"2026.09.21.manual-routine-finalize",
   schemaVersion:8,
   releaseDate:"September 21, 2026",
   releaseNotes:[
@@ -32,10 +32,12 @@ const APP_META={
     "Lets each routine start automatically or wait, collapsed, until Start Routine is pressed.",
     "Keeps later routines locked until the available routine has started and been resolved.",
     "Resets manual-start choices the following day without changing routine schedules.",
-    "Lets selected steps complete and add one temporary repeat to the bottom of the routine.",
+    "Lets completed selected steps add one temporary repeat to the bottom of the routine.",
     "Allows each temporary repeat to repeat again without creating permanent duplicates.",
     "Removes temporary repeats the following day and includes them in backups and recovery snapshots.",
-    "Keeps temporary repeat names clearly visible in the dark Today screen."
+    "Keeps temporary repeat names clearly visible in the dark Today screen.",
+    "Shows Repeat only after a repeatable step is completed.",
+    "Waits for Complete Routine before collapsing the routine and unlocking the next one."
   ]
 };
 
@@ -536,17 +538,28 @@ function syncRoutineProgress(routine,dateKey){
   progress[dateKey]=progress[dateKey]||{};
   const current=progress[dateKey][routine.id];
   if(current&&current.state==="skipped")return;
-  if(summary.total>0&&summary.resolved===summary.total){
-    progress[dateKey][routine.id]={
-      state:"done",
-      completedAt:current&&current.completedAt||new Date().toISOString(),
-      skippedSteps:summary.skipped
-    };
-  }else{
+  if(current&&current.state==="done"&&(summary.total===0||summary.resolved!==summary.total)){
     delete progress[dateKey][routine.id];
     if(Object.keys(progress[dateKey]).length===0)delete progress[dateKey];
   }
   saveProgress(progress);
+}
+function routineReadyToComplete(routine,dateKey=getTodayKey()){
+  const summary=stepSummary(routine,dateKey);
+  return !isRoutineResolved(dateKey,routine.id)&&summary.total>0&&summary.resolved===summary.total;
+}
+function completeRoutineForToday(routineId){
+  const dateKey=getTodayKey();
+  const routine=dueRoutinesOn(new Date()).find(item=>item.id===routineId);
+  const current=currentRoutineForDate(dueRoutinesOn(new Date()),dateKey);
+  if(!routine||!current||current.id!==routine.id||!routineReadyToComplete(routine,dateKey))return;
+  const summary=stepSummary(routine,dateKey);
+  const progress=loadProgress();
+  progress[dateKey]=progress[dateKey]||{};
+  progress[dateKey][routine.id]={state:"done",completedAt:new Date().toISOString(),skippedSteps:summary.skipped};
+  saveProgress(progress);
+  manuallyCollapsed[routine.id]=true;
+  render();
 }
 function firstPendingIndex(routine,dateKey){
   return visibleStepsForDate(routine,dateKey).findIndex(step=>getStepState(dateKey,routine.id,step.id)==="pending");
@@ -623,8 +636,7 @@ function repeatStepForToday(routine,stepId){
   const steps=visibleStepsForDate(routine,dateKey);
   const index=steps.findIndex(step=>step.id===stepId);
   const step=steps[index];
-  if(!step||!step.repeatable||getStepState(dateKey,routine.id,stepId)!=="pending")return;
-  if(routine.lockSteps&&index!==firstPendingIndex(routine,dateKey))return;
+  if(!step||!step.repeatable||getStepState(dateKey,routine.id,stepId)!=="done"||isRoutineResolved(dateKey,routine.id))return;
   const repeats=loadStepRepeats();
   repeats.push(normalizeStepRepeat({
     id:makeId("repeat"),date:dateKey,routineId:routine.id,
@@ -632,7 +644,9 @@ function repeatStepForToday(routine,stepId){
     rotationGroupId:step.rotationGroupId||"",createdAt:new Date().toISOString()
   }));
   saveStepRepeats(repeats);
-  setStepStatus(routine,stepId,"done");
+  syncRoutineProgress(routine,dateKey);
+  manuallyCollapsed[routine.id]=false;
+  render();
 }
 function pendingMatchingSteps(routine,sourceStepId,dateKey=getTodayKey()){
   const source=routine.steps.find(step=>step.id===sourceStepId);
@@ -755,14 +769,14 @@ function renderStepRow(routine,step,index,dateKey){
   const replaceCount=state==="done"&&!step.temporary&&!step.priority?pendingMatchingSteps(routine,step.id,dateKey).length:0;
   const priorityQueued=state==="skipped"&&Boolean(queuedPriorityForStep(routine.id,step.id,dateKey));
   const skipButton='<button class="step-skip-btn '+(state==="skipped"?"active":"")+'" type="button" '+(skipEnabled?"":"disabled")+' aria-label="'+(state==="skipped"?"Clear skipped ":"Skip ")+escapeHtml(step.text)+'">Skip</button>';
-  const repeatButton=step.repeatable&&state==="pending"&&!locked?'<button class="step-repeat-btn" type="button" aria-label="Complete '+escapeHtml(step.text)+' and repeat it at the bottom" title="Complete and repeat at bottom">↻</button>':"";
+  const repeatButton=step.repeatable&&state==="done"&&!isRoutineResolved(dateKey,routine.id)?'<button class="step-repeat-btn" type="button" aria-label="Repeat '+escapeHtml(step.text)+' at the bottom" title="Repeat at bottom">↻</button>':"";
   const priorityButton=state==="skipped"&&!step.temporaryRepeat?'<button class="step-priority-btn '+(priorityQueued?"active":"")+'" type="button" aria-label="'+(priorityQueued?"Remove priority next time for ":"Priority next time for ")+escapeHtml(step.text)+'" title="Priority Next Time">'+(priorityQueued?"⚑":"⚐")+'</button>':"";
   row.innerHTML=
     '<button class="routine-step-check" type="button" '+(checkEnabled?"":"disabled")+' aria-label="'+escapeHtml(checkLabel)+'"><span aria-hidden="true">'+checkIcon+'</span></button>'+
     '<div class="routine-step-copy"><span class="routine-step-number">'+String(index+1)+'.</span><span class="routine-step-text">'+escapeHtml(step.text)+'</span>'+(step.priority?'<span class="priority-step-pill">Priority</span>':step.temporaryRepeat?'<span class="repeat-step-pill">Repeat</span>':step.temporary?'<span class="temporary-step-pill">Today</span>':"")+'</div>'+
     ((state==="pending"&&!locked)||state==="skipped"
-      ?'<div class="step-actions">'+repeatButton+skipButton+priorityButton+'</div>'
-      :replaceCount?'<button class="step-replace-btn" type="button" aria-label="Replace '+replaceCount+' remaining '+escapeHtml(step.text)+' '+(replaceCount===1?'step':'steps')+' for today">Replace</button>'
+      ?'<div class="step-actions">'+skipButton+priorityButton+'</div>'
+      :repeatButton||replaceCount?'<div class="step-actions">'+repeatButton+(replaceCount?'<button class="step-replace-btn" type="button" aria-label="Replace '+replaceCount+' remaining '+escapeHtml(step.text)+' '+(replaceCount===1?'step':'steps')+' for today">Replace</button>':"")+'</div>'
       :'<span class="routine-step-control-spacer" aria-hidden="true"></span>');
   row.querySelector(".routine-step-check").addEventListener("click",()=>{
     if(state==="pending")setStepStatus(routine,step.id,"done");
@@ -830,6 +844,13 @@ function renderRoutineList(){
       body.querySelector(".clear-routine-btn").addEventListener("click",()=>clearRoutineForToday(routine.id));
     }else{
       summary.steps.forEach((step,stepIndex)=>body.appendChild(renderStepRow(routine,step,stepIndex,dateKey)));
+      if(isCurrent&&routineReadyToComplete(routine,dateKey)){
+        const finish=document.createElement("div");
+        finish.className="routine-finish-panel";
+        finish.innerHTML='<button class="primary-btn complete-routine-btn" type="button">Complete Routine</button><small>Finish this routine and unlock the next one.</small>';
+        finish.querySelector(".complete-routine-btn").addEventListener("click",()=>completeRoutineForToday(routine.id));
+        body.appendChild(finish);
+      }
     }
     E.routineList.appendChild(card);
   });

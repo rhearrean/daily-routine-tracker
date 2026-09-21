@@ -4,6 +4,15 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.4.0 — Repeat After Completion & Manual Routine Finish
+
+- Show Repeat only after a repeatable step is completed.
+- Append a temporary copy without clearing the completed source step.
+- Keep the routine current after all steps are resolved.
+- Require Complete Routine before collapsing it and unlocking the next routine.
+- Hide Complete Routine whenever a new repeat is pending.
+- Preserve already finalized routines and schema 8 data.
+
 ### v12.3.1 — Repeat Step Name Visibility
 
 - Keep temporary repeat names readable against the dark Today screen.

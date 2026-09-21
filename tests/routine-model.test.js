@@ -35,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,loadStepRepeats,saveStepRepeats,clearExpiredStepRepeats,visibleRepeatStepsForDate,repeatStepForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,loadStepRepeats,saveStepRepeats,clearExpiredStepRepeats,visibleRepeatStepsForDate,repeatStepForToday,routineReadyToComplete,completeRoutineForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -113,6 +113,7 @@ assert.deepEqual(
   "Temporary replacement names must not carry into the next day"
 );
 
+api.saveRoutines([locked]);
 api.setStepStatus(locked,"two","done");
 assert.equal(api.getStepState(todayKey,"locked","two"),"pending","A later locked step cannot complete early");
 api.setStepStatus(locked,"one","skipped");
@@ -125,6 +126,9 @@ api.setStepStatus(locked,"two","pending");
 assert.equal(api.getStepState(todayKey,"locked","two"),"pending");
 api.setStepStatus(locked,"two","done");
 api.setStepStatus(locked,"three","done");
+assert.equal(api.routineReadyToComplete(locked,todayKey),true,"Resolving all steps should wait for routine confirmation");
+assert.equal(api.isRoutineDone(todayKey,"locked"),false,"The last step must not auto-complete the routine");
+api.completeRoutineForToday("locked");
 assert.equal(api.isRoutineDone(todayKey,"locked"),true);
 
 assert.equal(api.scheduleMatches(api.normalizeRoutine({name:"Sat",schedule:"custom",days:[6],steps:[{text:"x"}]}),new Date(2026,8,12)),true);
@@ -164,7 +168,9 @@ const hiddenLockStep=api.normalizeRoutine({
 api.saveRoutines([hiddenLockStep]);
 api.setStepStatus(hiddenLockStep,"visible-second","done");
 assert.equal(api.getStepState(todayKey,"hidden-lock","visible-second"),"done","A hidden earlier step must not keep today's visible step locked");
-assert.equal(api.isRoutineDone(todayKey,"hidden-lock"),true,"Hidden steps must not prevent today's routine completion");
+assert.equal(api.routineReadyToComplete(hiddenLockStep,todayKey),true,"Hidden steps must not prevent routine confirmation");
+api.completeRoutineForToday("hidden-lock");
+assert.equal(api.isRoutineDone(todayKey,"hidden-lock"),true);
 
 localStorage.clear();
 const carryRoutine=api.normalizeRoutine({
@@ -264,12 +270,15 @@ assert.equal(startRoutines[0].startMode,"automatic","Existing behavior stays aut
 assert.equal(startRoutines[1].startMode,"manual");
 assert.equal(api.isRoutineStarted(startRoutines[1],todayKey),false,"A manual routine waits until explicitly started");
 api.setStepStatus(startRoutines[0],"morning-step","done");
+assert.equal(api.currentRoutineForDate(api.dueRoutinesOn(today),todayKey).id,"auto-first","Resolving steps alone must keep the current routine active");
+api.completeRoutineForToday("auto-first");
 assert.equal(api.currentRoutineForDate(api.dueRoutinesOn(today),todayKey).id,"manual-next","The next unresolved manual routine becomes available in order");
 api.startRoutineForToday("manual-next");
 assert.equal(api.isRoutineStarted(startRoutines[1],todayKey),true,"Start Routine activates the available manual routine");
 assert.ok(api.loadRoutineStarts()[todayKey]["manual-next"],"Manual starts are stored for the current day");
 assert.equal(api.isRoutineStarted(startRoutines[2],todayKey),false,"A later manual routine remains unstarted");
 api.setStepStatus(startRoutines[1],"home-step","done");
+api.completeRoutineForToday("manual-next");
 assert.equal(api.currentRoutineForDate(api.dueRoutinesOn(today),todayKey).id,"manual-last","Resolving a started routine makes the next routine available");
 assert.equal(api.isRoutineStarted(startRoutines[2],todayKey),false);
 api.saveRoutineStarts({...api.loadRoutineStarts(),"2000-01-01":{"manual-last":"old"}});
@@ -284,22 +293,29 @@ const repeatAtBottom=api.normalizeRoutine({id:"repeat-bottom",name:"Busy Day",sc
 ]});
 api.saveRoutines([repeatAtBottom]);
 api.repeatStepForToday(repeatAtBottom,"dishes");
+assert.equal(api.loadStepRepeats().length,0,"A pending repeatable step cannot repeat before it is completed");
+api.setStepStatus(repeatAtBottom,"dishes","done");
+api.repeatStepForToday(repeatAtBottom,"dishes");
 let repeatSteps=api.visibleStepsForDate(repeatAtBottom,todayKey);
-assert.equal(api.getStepState(todayKey,"repeat-bottom","dishes"),"done","Repeat completes the current occurrence");
+assert.equal(api.getStepState(todayKey,"repeat-bottom","dishes"),"done","Repeat leaves the completed source checked");
 assert.equal(repeatSteps.length,3,"Repeat adds exactly one temporary occurrence");
 assert.equal(repeatSteps[2].temporaryRepeat,true,"The temporary repeat is appended after permanent steps");
 assert.equal(repeatSteps[2].rotationGroupId,"shared","Temporary repeats preserve the shared rotation group");
 assert.equal(api.isRoutineDone(todayKey,"repeat-bottom"),false,"A pending repeat keeps the routine unresolved");
-api.repeatStepForToday(repeatAtBottom,repeatSteps[2].id);
-assert.equal(api.loadStepRepeats().length,1,"A locked repeat cannot bypass an earlier pending step");
 api.setStepStatus(repeatAtBottom,"tidy","done");
+api.setStepStatus(repeatAtBottom,repeatSteps[2].id,"done");
 api.repeatStepForToday(repeatAtBottom,repeatSteps[2].id);
 repeatSteps=api.visibleStepsForDate(repeatAtBottom,todayKey);
 assert.equal(api.loadStepRepeats().length,2,"A temporary repeat can repeat again when unlocked");
 assert.equal(repeatSteps.at(-1).temporaryRepeat,true);
 assert.equal(repeatSteps.at(-1).text,"Dishes");
 api.setStepStatus(repeatAtBottom,repeatSteps.at(-1).id,"done");
-assert.equal(api.isRoutineDone(todayKey,"repeat-bottom"),true,"Normal completion ends the repeat chain");
+assert.equal(api.routineReadyToComplete(repeatAtBottom,todayKey),true,"Normal completion ends the repeat chain and offers routine confirmation");
+assert.equal(api.isRoutineDone(todayKey,"repeat-bottom"),false,"A resolved repeat chain must still wait for Complete Routine");
+api.completeRoutineForToday("repeat-bottom");
+assert.equal(api.isRoutineDone(todayKey,"repeat-bottom"),true,"Complete Routine finalizes the routine");
+api.repeatStepForToday(repeatAtBottom,"dishes");
+assert.equal(api.loadStepRepeats().length,2,"A finalized routine cannot add another repeat");
 assert.equal(api.visibleStepsForDate(repeatAtBottom,tomorrowKey).length,2,"Temporary repeats disappear the next day");
 assert.equal(api.makeBackupPayload().stepRepeats.length,2,"Temporary repeats are included in backups");
 api.saveStepRepeats([...api.loadStepRepeats(),{id:"old-repeat",date:"2000-01-01",routineId:"repeat-bottom",sourceStepId:"dishes",text:"Dishes"}]);

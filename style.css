@@ -1029,6 +1029,9 @@
 .routine-start-panel:empty{display:none}
 .routine-start-panel .start-routine-btn{width:100%;margin:0;min-height:42px}
 .routine-start-panel small{color:var(--muted);font-size:.72rem;line-height:1.35;text-align:center}
+.routine-finish-panel{display:grid;gap:6px;margin-top:3px;padding-top:9px;border-top:1px solid var(--border)}
+.routine-finish-panel .complete-routine-btn{width:100%;margin:0;min-height:42px}
+.routine-finish-panel small{color:var(--muted);font-size:.72rem;line-height:1.35;text-align:center}
 .waiting-routine .routine-order{background:rgba(250,204,21,.13);color:var(--warning)}
 .routine-step-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:42px;padding:5px 7px;border:1px solid var(--border);border-radius:13px;background:rgba(15,23,42,.38)}
 .routine-step-check{display:grid;place-items:center;width:30px;height:30px;min-height:30px;padding:0;border:2px solid var(--muted);border-radius:9px;background:transparent;color:#052e16;font-size:1rem;font-weight:900}
