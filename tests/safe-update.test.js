@@ -10,7 +10,7 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.3\.0"/);
+assert.match(app,/version:"12\.3\.1"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
@@ -121,14 +121,13 @@ assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.3\\.0"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.3\\.1"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-3-0"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.3\.0"/);
-assert.match(worker,/on-demand repeats/);
-assert.match(worker,/temporary copy at the bottom/);
-assert.match(worker,/Existing steps remain unchanged/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-3-1"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.3\.1"/);
+assert.match(worker,/temporary repeat step name/);
+assert.match(worker,/Temporary repeat names now remain clearly visible/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -159,6 +158,7 @@ assert.match(style,/\.routine-start-panel/);
 assert.match(style,/\.step-repeat-btn\{/);
 assert.match(style,/\.repeat-step-pill\{/);
 assert.match(style,/\.step-repeat-editor\{/);
+assert.match(style,/\.routine-step-row\.temporary-repeat-step\{border-color:rgba\(110,231,183,\.35\);background:rgba\(16,185,129,\.09\)\}/);
 assert.match(style,/\.routine-card-header:disabled\{/);
 assert.match(style,/\.step-schedule-editor\{/);
 assert.match(style,/\.step-day-buttons button\.selected\{/);
@@ -168,9 +168,10 @@ assert.match(style,/\.skip-review-details\.hidden\{display:none\}/);
 assert.match(style,/max-height:calc\(100dvh - 36px\)/);
 assert.match(style,/overflow-y:auto/);
 
+assert.match(backlog,/v12\.3\.1 — Repeat Step Name Visibility/);
 assert.match(backlog,/v12\.3\.0 — Repeat a Step at the Bottom/);
 assert.match(backlog,/v12\.0\.8 — Priority Next Routine/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and repeat-at-bottom assertions passed for v12.3.0");
+console.log("Safe update and repeat-name assertions passed for v12.3.1");

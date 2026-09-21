@@ -4,6 +4,11 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.3.1 — Repeat Step Name Visibility
+
+- Keep temporary repeat names readable against the dark Today screen.
+- Preserve all repeat behavior and schema 8 data.
+
 ### v12.3.0 — Repeat a Step at the Bottom
 
 - Let selected permanent steps repeat on demand without creating permanent duplicates.

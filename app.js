@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.3.0",
-  build:"2026.09.21.repeat-step-at-bottom",
+  version:"12.3.1",
+  build:"2026.09.21.repeat-step-name-visibility",
   schemaVersion:8,
   releaseDate:"September 21, 2026",
   releaseNotes:[
@@ -34,7 +34,8 @@ const APP_META={
     "Resets manual-start choices the following day without changing routine schedules.",
     "Lets selected steps complete and add one temporary repeat to the bottom of the routine.",
     "Allows each temporary repeat to repeat again without creating permanent duplicates.",
-    "Removes temporary repeats the following day and includes them in backups and recovery snapshots."
+    "Removes temporary repeats the following day and includes them in backups and recovery snapshots.",
+    "Keeps temporary repeat names clearly visible in the dark Today screen."
   ]
 };
 
