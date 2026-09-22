@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.4.2",
-  build:"2026.09.22.settings-typography",
+  version:"12.4.3",
+  build:"2026.09.22.compact-routine-editor",
   schemaVersion:8,
   releaseDate:"September 22, 2026",
   releaseNotes:[
@@ -41,7 +41,10 @@ const APP_META={
     "Compacts routine management and the routine editor on iPhone without removing any controls.",
     "Uses a single icon toolbar for routine actions and a clearer compact layout for each ordered step.",
     "Standardizes titles, labels, descriptions, controls, and supporting text across the main Settings page.",
-    "Moves release notes into an optional information pop-up so the Version card stays compact."
+    "Moves release notes into an optional information pop-up so the Version card stays compact.",
+    "Separates routine-level settings from ordered step settings in the routine editor.",
+    "Compacts each step into a name row, one control row, and an optional rotation row.",
+    "Keeps rotating substeps collapsed until they are opened for editing."
   ]
 };
 
@@ -1118,15 +1121,16 @@ function askMatchAction({title,message,oneLabel,allLabel,dangerAll=false}){
 }
 function rotationEditorMarkup(step){
   const group=selectedRotations[step.rotationGroupId];
-  if(!group)return'<button type="button" class="small-btn add-rotation-btn">＋ Add Rotating Substeps</button>';
+  if(!group)return'<button type="button" class="small-btn add-rotation-btn">＋ Rotation</button>';
   const items=orderedRotationItems(group);
-  return'<details class="rotation-editor" open><summary>↻ Rotating Substeps <span>'+items.length+'</span></summary><p class="helper-text no-top">Optional reminders. Tapping one on Today moves it to the end without completing the parent step.</p><div class="rotation-editor-items">'+items.map((item,itemIndex)=>'<div class="rotation-editor-item"><input type="text" data-rotation-item="'+escapeHtml(item.id)+'" value="'+escapeHtml(item.text)+'" placeholder="Room or area" aria-label="Rotating substep '+(itemIndex+1)+'" /><div><button type="button" class="reorder-btn rotation-up" data-item-id="'+escapeHtml(item.id)+'" '+(itemIndex===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn rotation-down" data-item-id="'+escapeHtml(item.id)+'" '+(itemIndex===items.length-1?"disabled":"")+'>↓</button><button type="button" class="danger-btn remove-rotation-item" data-item-id="'+escapeHtml(item.id)+'">✕</button></div></div>').join("")+'</div><div class="rotation-editor-actions"><button type="button" class="small-btn add-rotation-item">＋ Area</button><button type="button" class="small-btn unlink-rotation-btn">Remove List From This Step</button></div></details>';
+  return'<details class="rotation-editor"><summary>↻ Rotating Substeps <span>'+items.length+'</span></summary><p class="helper-text no-top">Optional FIFO reminders that rotate when tapped on Today.</p><div class="rotation-editor-items">'+items.map((item,itemIndex)=>'<div class="rotation-editor-item"><input type="text" data-rotation-item="'+escapeHtml(item.id)+'" value="'+escapeHtml(item.text)+'" placeholder="Room or area" aria-label="Rotating substep '+(itemIndex+1)+'" /><div><button type="button" class="reorder-btn rotation-up" data-item-id="'+escapeHtml(item.id)+'" '+(itemIndex===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn rotation-down" data-item-id="'+escapeHtml(item.id)+'" '+(itemIndex===items.length-1?"disabled":"")+'>↓</button><button type="button" class="danger-btn remove-rotation-item" data-item-id="'+escapeHtml(item.id)+'">✕</button></div></div>').join("")+'</div><div class="rotation-editor-actions"><button type="button" class="small-btn add-rotation-item">＋ Area</button><button type="button" class="small-btn unlink-rotation-btn">Remove Rotation</button></div></details>';
 }
 function addRotationToStep(index){
   const id=makeId("rotation");
   selectedRotations[id]={id,items:[{id:makeId("rotation-item"),text:""}],queue:[]};
   selectedRotations[id].queue=[selectedRotations[id].items[0].id];
   selectedSteps[index].rotationGroupId=id;
+  expandedRotationRows.add("editor:"+selectedSteps[index].id);
   renderStepsEditor();
 }
 function updateRotationItem(groupId,itemId,text){
@@ -1179,13 +1183,19 @@ function renderStepsEditor(){
     const row=document.createElement("div");
     row.className="routine-step-editor-row";
     const stepDays=uniqueDays(step.days);
-    row.innerHTML='<div class="step-editor-top"><span class="step-editor-number">'+(index+1)+'</span><input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /></div><div class="step-editor-toolbar"><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" aria-label="Move step up" title="Move up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" aria-label="Move step down" title="Move down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="small-btn duplicate-step-btn" aria-label="Copy step" title="Copy step">Copy</button><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step" title="Remove step">✕</button></div><div class="step-editor-options"><label class="step-repeat-editor"><input class="step-repeatable" type="checkbox" '+(step.repeatable?"checked":"")+' /> Repeat at bottom</label><div class="step-schedule-editor"><label><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every routine day</label></div></div><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div><div class="rotation-editor-shell">'+rotationEditorMarkup(step)+'</div>';
+    row.innerHTML='<div class="step-editor-top"><span class="step-editor-number">'+(index+1)+'</span><input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /></div><div class="step-editor-controls"><div class="step-editor-toolbar"><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" aria-label="Move step up" title="Move up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" aria-label="Move step down" title="Move down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="small-btn duplicate-step-btn" aria-label="Copy step" title="Copy step">⧉</button><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step" title="Remove step">✕</button></div><div class="step-editor-options"><label class="step-repeat-editor" title="Allow this step to repeat at the bottom today"><input class="step-repeatable" type="checkbox" '+(step.repeatable?"checked":"")+' /> Repeat</label><div class="step-schedule-editor"><label title="Use this step on every scheduled routine day"><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every day</label></div></div></div><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div><div class="rotation-editor-shell">'+rotationEditorMarkup(step)+'</div>';
     row.querySelector(".step-name-input").addEventListener("input",event=>selectedSteps[index].text=event.target.value);
     row.querySelector(".step-up").addEventListener("click",()=>moveEditorStep(index,-1));
     row.querySelector(".step-down").addEventListener("click",()=>moveEditorStep(index,1));
     row.querySelector(".duplicate-step-btn").addEventListener("click",()=>duplicateEditorStep(index));
     row.querySelector(".remove-step-btn").addEventListener("click",()=>requestRemoveEditorStep(index));
     row.querySelector(".step-repeatable").addEventListener("change",event=>selectedSteps[index].repeatable=event.target.checked);
+    const editorRotation=row.querySelector(".rotation-editor");
+    const editorRotationKey="editor:"+step.id;
+    if(editorRotation){
+      editorRotation.open=expandedRotationRows.has(editorRotationKey);
+      editorRotation.addEventListener("toggle",()=>editorRotation.open?expandedRotationRows.add(editorRotationKey):expandedRotationRows.delete(editorRotationKey));
+    }
     row.querySelector(".add-rotation-btn")?.addEventListener("click",()=>addRotationToStep(index));
     row.querySelector(".add-rotation-item")?.addEventListener("click",()=>{
       const group=selectedRotations[step.rotationGroupId];

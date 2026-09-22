@@ -10,7 +10,7 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.4\.2"/);
+assert.match(app,/version:"12\.4\.3"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
@@ -79,10 +79,14 @@ assert.match(app,/getStepState\(dateKey,routine\.id,stepId\)!=="done"/);
 assert.match(app,/class="primary-btn complete-routine-btn"/);
 assert.match(app,/Finish this routine and unlock the next one/);
 assert.match(app,/function visibleRepeatStepsForDate/);
-assert.match(app,/Repeat at bottom/);
+assert.match(app,/Repeat<\/label>/);
 assert.match(app,/class="step-editor-top"/);
+assert.match(app,/class="step-editor-controls"/);
 assert.match(app,/class="step-editor-toolbar"/);
 assert.match(app,/class="step-editor-options"/);
+assert.match(app,/editorRotationKey="editor:"\+step\.id/);
+assert.match(app,/expandedRotationRows\.add\("editor:"\+selectedSteps\[index\]\.id\)/);
+assert.doesNotMatch(app,/class="rotation-editor" open/);
 assert.match(app,/aria-label="Edit /);
 assert.match(app,/E\.openReleaseNotesBtn\.addEventListener/);
 assert.match(app,/E\.releaseNotesList\.innerHTML=APP_META\.releaseNotes/);
@@ -122,6 +126,9 @@ assert.match(html,/id="todayRoutineSwitchTo"/);
 assert.match(html,/id="allRoutines"/);
 assert.match(html,/id="autoCollapseRoutines"/);
 assert.match(html,/id="routineForm"/);
+assert.match(html,/class="routine-settings-editor editor-section"/);
+assert.match(html,/Routine Settings/);
+assert.match(html,/Schedule & Behavior/);
 assert.match(html,/id="lockSteps"/);
 assert.match(html,/id="routineStartMode"/);
 assert.match(html,/id="openReleaseNotesBtn"/);
@@ -136,13 +143,13 @@ assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.4\\.2"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.4\\.3"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-4-2"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.4\.2"/);
-assert.match(worker,/Settings page typography consistent/);
-assert.match(worker,/Release notes moved into a scrollable pop-up/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-4-3"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.4\.3"/);
+assert.match(worker,/Separates routine settings from step settings/);
+assert.match(worker,/Rotating substeps stay collapsed until opened/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -192,7 +199,12 @@ assert.match(style,/#settingsPanel \.card h2\{/);
 assert.match(style,/#settingsPanel \.card \.helper-text/);
 assert.match(style,/\.settings-info-btn\{/);
 assert.match(style,/\.release-notes-sheet\.hidden\{display:none\}/);
+assert.match(style,/v12\.4\.3 — Compact routine editor/);
+assert.match(style,/\.routine-settings-editor\{/);
+assert.match(style,/\.step-editor-controls\{/);
+assert.match(style,/\.rotation-editor\[open\]/);
 
+assert.match(backlog,/v12\.4\.3 — Compact Routine Editor/);
 assert.match(backlog,/v12\.4\.2 — Uniform Settings Typography/);
 assert.match(backlog,/v12\.4\.1 — Compact Routine Settings/);
 assert.match(backlog,/v12\.4\.0 — Repeat After Completion & Manual Routine Finish/);
@@ -202,4 +214,4 @@ assert.match(backlog,/v12\.0\.8 — Priority Next Routine/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and uniform Settings typography assertions passed for v12.4.2");
+console.log("Safe update and compact routine editor assertions passed for v12.4.3");

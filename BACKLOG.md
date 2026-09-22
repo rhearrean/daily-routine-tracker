@@ -4,6 +4,15 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.4.3 — Compact Routine Editor
+
+- Separate routine-level schedule and behavior controls from ordered step settings.
+- Compress each step into a name row, one combined control row, and an optional rotation row.
+- Keep rotating substeps collapsed until explicitly opened for editing.
+- Preserve open rotation panels while making edits that rerender the step list.
+- Keep step order, copy, repeat, weekday, rotation, matching, and delete behavior intact.
+- Preserve all routines, history, settings, and schema 8 data.
+
 ### v12.4.2 — Uniform Settings Typography
 
 - Keep the compact Manage & Order routine layout unchanged.

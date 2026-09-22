@@ -1319,3 +1319,97 @@
 .release-notes-card .icon-btn{min-width:38px;min-height:38px;padding:7px}
 .release-notes-card ul{margin:0;padding:0 0 0 20px;color:var(--muted);font-size:.8rem;line-height:1.45}
 .release-notes-card li+li{margin-top:7px}
+
+/* v12.4.3 — Compact routine editor */
+.habit-editor-card{
+  --editor-title-size:1rem;
+  --editor-label-size:.72rem;
+  --editor-copy-size:.72rem;
+  --editor-control-size:.78rem;
+}
+#routineForm{gap:9px}
+.editor-section,
+.routine-steps-editor{
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:rgba(15,23,42,.28);
+}
+.routine-settings-editor{display:grid;gap:8px;padding:10px}
+.editor-section-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.editor-section-heading .label{font-size:.68rem}
+.editor-section-heading h3{margin:3px 0 0;font-size:var(--editor-title-size);font-weight:800}
+.routine-settings-editor>label{display:grid;gap:4px;color:var(--muted);font-size:var(--editor-label-size);font-weight:800}
+.routine-settings-editor input,
+.routine-settings-editor select{padding:9px 10px!important;border-radius:10px!important;font-size:var(--editor-control-size)}
+.routine-settings-editor .helper-text{font-size:var(--editor-copy-size)!important;line-height:1.3}
+.routine-settings-editor .custom-days{gap:4px}
+.routine-settings-editor .custom-days button{flex:1 1 36px;min-width:0;padding:7px 3px;font-size:.66rem}
+.routine-behavior-row{display:grid;gap:3px;padding:7px 8px;border:1px solid var(--border);border-radius:10px;background:rgba(31,41,55,.45)}
+.routine-behavior-row .check-label{font-size:var(--editor-control-size)!important;color:var(--text)!important}
+
+.routine-steps-editor{padding:9px}
+.routine-steps-editor-header{padding-bottom:7px;border-bottom:1px solid var(--border)}
+.routine-steps-editor-header .standalone-label{font-size:var(--editor-title-size);font-weight:800;color:var(--text)}
+.routine-steps-editor-header .helper-text{font-size:var(--editor-copy-size)!important}
+.routine-step-editor-row{
+  gap:6px!important;
+  margin-top:7px!important;
+  padding:7px!important;
+  border-radius:11px!important;
+  background:rgba(31,41,55,.38)!important;
+}
+.step-editor-top{grid-template-columns:22px minmax(0,1fr);gap:6px}
+.step-editor-number{width:22px;height:22px;border-radius:7px;font-size:.65rem}
+.step-editor-top .step-name-input{height:34px;padding:7px 8px!important;border-radius:9px!important;font-size:.8rem!important}
+.step-editor-controls{display:flex;align-items:center;justify-content:space-between;gap:6px;padding-top:6px;border-top:1px solid var(--border)}
+.step-editor-toolbar{flex:0 0 auto;gap:3px}
+.step-editor-toolbar .routine-step-reorder{gap:3px!important}
+.step-editor-toolbar .reorder-btn,
+.step-editor-toolbar .duplicate-step-btn,
+.step-editor-toolbar .remove-step-btn{
+  display:grid!important;
+  place-items:center!important;
+  width:28px!important;
+  min-width:28px!important;
+  height:28px!important;
+  min-height:28px!important;
+  padding:0!important;
+  border-radius:8px!important;
+  font-size:.76rem!important;
+}
+.step-editor-options{
+  display:flex!important;
+  grid-template-columns:none!important;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  min-width:0;
+  padding:0!important;
+  border:0!important;
+}
+.step-repeat-editor,
+.step-schedule-editor label{gap:4px;font-size:.66rem;white-space:nowrap}
+.step-repeat-editor input,
+.step-schedule-editor label input{width:15px!important;height:15px!important}
+.step-day-buttons{gap:3px;padding-top:1px}
+.step-day-buttons button{min-height:25px;font-size:.6rem}
+.rotation-editor-shell{min-height:28px}
+.rotation-editor-shell>.add-rotation-btn{min-height:28px;padding:5px 8px!important;border-radius:8px;font-size:.66rem!important}
+.rotation-editor{padding:0;border-radius:9px;background:rgba(15,23,42,.24)}
+.rotation-editor summary{min-height:28px;padding:6px 8px;list-style-position:inside;font-size:.7rem;line-height:1.2}
+.rotation-editor summary span{margin-left:6px}
+.rotation-editor[open]{padding:0 7px 7px}
+.rotation-editor[open] summary{margin:0 -7px 7px;border-bottom:1px solid var(--border)}
+.rotation-editor .helper-text{font-size:.66rem!important;line-height:1.3}
+.rotation-editor-items{gap:5px;margin-top:7px}
+.rotation-editor-item{gap:5px}
+.rotation-editor-item input{height:32px;padding:6px 8px!important;border-radius:8px!important;font-size:.72rem!important}
+.rotation-editor-item .reorder-btn,
+.rotation-editor-item .danger-btn{width:30px;min-width:30px;height:30px;padding:0;border-radius:8px}
+.rotation-editor-actions{gap:5px;margin-top:7px}
+.rotation-editor-actions .small-btn{padding:6px 8px;font-size:.66rem}
+
+@media(max-width:370px){
+  .step-editor-controls{align-items:flex-start;flex-direction:column}
+  .step-editor-options{justify-content:flex-start;width:100%}
+}
