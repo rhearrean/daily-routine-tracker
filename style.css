@@ -1114,3 +1114,115 @@
 .repeat-step-pill{display:inline-flex;align-items:center;margin-left:6px;padding:2px 6px;border-radius:999px;background:#dff3eb;color:#17664f;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 .step-repeat-editor{grid-column:1/-1;display:flex;align-items:center;gap:8px;color:#43534d;font-size:12px;font-weight:700}
 .step-repeat-editor input{width:17px;height:17px;margin:0;accent-color:#26785e}
+
+/* v12.4.1 — Compact routine settings and editor */
+.settings-inner{padding:16px 12px 36px}
+.settings-inner .card{margin:10px 0;padding:14px;border-radius:18px}
+.settings-inner .section-header{gap:8px}
+.settings-inner h2{font-size:1.35rem}
+.settings-inner .helper-text{font-size:.78rem;line-height:1.35}
+#allRoutines{gap:7px;margin-top:10px}
+
+.compact-habit-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:8px!important;
+  padding:9px 10px!important;
+  border-radius:14px!important;
+}
+.compact-habit-title{gap:5px!important}
+.compact-habit-row small{margin-top:3px!important;font-size:.68rem!important;line-height:1.25!important}
+.compact-habit-actions{
+  display:flex!important;
+  grid-template-columns:none!important;
+  grid-template-areas:none!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:4px!important;
+  width:auto!important;
+}
+.compact-habit-actions>*{grid-area:auto!important}
+.compact-habit-actions>.reorder-actions{display:flex!important;width:auto!important;gap:4px!important}
+.compact-habit-actions .reorder-btn,
+.compact-habit-actions .pause-toggle-btn,
+.compact-habit-actions .edit-btn,
+.compact-habit-actions .compact-delete-btn{
+  display:grid!important;
+  place-items:center!important;
+  width:30px!important;
+  min-width:30px!important;
+  height:30px!important;
+  min-height:30px!important;
+  padding:0!important;
+  border-radius:9px!important;
+  font-size:.82rem!important;
+  line-height:1!important;
+}
+
+.habit-editor-sheet{padding:8px}
+.habit-editor-card{
+  max-height:calc(100vh - 16px);
+  max-height:calc(100dvh - 16px);
+  padding:13px;
+  border-radius:18px;
+}
+.habit-editor-card .sheet-header{margin-bottom:7px}
+.habit-editor-card .sheet-header h2{font-size:1.35rem}
+.habit-editor-card .icon-btn{min-width:38px;min-height:38px;padding:7px}
+#routineForm{gap:9px;margin-top:8px}
+#routineForm>label{gap:5px;font-size:.78rem}
+#routineForm input,#routineForm select{padding:10px 11px;border-radius:12px}
+#routineForm .check-label{gap:7px}
+#routineForm .check-label input{width:18px;height:18px;padding:0}
+#routineForm .helper-text{font-size:.7rem;line-height:1.3}
+.routine-steps-editor{gap:7px;padding:9px;border-radius:14px}
+.routine-steps-editor-header{align-items:center;gap:8px}
+.routine-steps-editor-header .standalone-label{font-size:.8rem}
+.routine-steps-editor-header .small-btn{flex:0 0 auto;padding:7px 10px;font-size:.75rem}
+
+.routine-step-editor-row{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  align-items:stretch!important;
+  gap:7px!important;
+  margin-top:6px!important;
+  padding:8px!important;
+  border-radius:12px!important;
+}
+.step-editor-top{display:grid;grid-template-columns:24px minmax(0,1fr);align-items:center;gap:7px}
+.step-editor-number{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:rgba(147,197,253,.1);color:var(--skip);font-size:.68rem;font-weight:900}
+.step-editor-top .step-name-input{grid-column:auto!important;padding:8px 9px!important}
+.step-editor-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:4px}
+.step-editor-toolbar .routine-step-reorder{display:flex!important;grid-row:auto!important;grid-column:auto!important;gap:4px!important}
+.step-editor-toolbar .reorder-btn,
+.step-editor-toolbar .remove-step-btn{
+  display:grid;
+  place-items:center;
+  width:30px!important;
+  min-width:30px!important;
+  height:30px!important;
+  min-height:30px!important;
+  padding:0!important;
+  border-radius:9px!important;
+  font-size:.8rem!important;
+}
+.step-editor-toolbar .duplicate-step-btn{width:auto!important;min-height:30px;padding:5px 9px!important;border-radius:9px;font-size:.7rem}
+.step-editor-options{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-top:7px;border-top:1px solid var(--border)}
+.step-repeat-editor,.step-schedule-editor{grid-row:auto!important;grid-column:auto!important}
+.step-repeat-editor,.step-schedule-editor label{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.68rem;font-weight:800;line-height:1.2}
+.step-repeat-editor input,.step-schedule-editor label input{width:16px!important;height:16px!important;padding:0!important;margin:0!important}
+.step-day-buttons{grid-row:auto!important;grid-column:1/-1!important;gap:3px}
+.step-day-buttons button{min-height:27px;padding:3px 1px;border-radius:7px;font-size:.62rem}
+.rotation-editor-shell{grid-row:auto!important;grid-column:1/-1!important}
+.rotation-editor-shell>.small-btn{padding:7px 9px;font-size:.7rem}
+
+@media(max-width:420px){
+  .compact-habit-row{grid-template-columns:1fr!important}
+  .compact-habit-actions{justify-content:flex-start!important}
+  .routine-steps-editor-header .helper-text{max-width:220px}
+}
+@media(max-width:360px){
+  .step-editor-options{grid-template-columns:1fr}
+}

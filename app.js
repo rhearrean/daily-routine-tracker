@@ -1,8 +1,8 @@
 const APP_META={
-  version:"12.4.0",
-  build:"2026.09.21.manual-routine-finalize",
+  version:"12.4.1",
+  build:"2026.09.22.compact-routine-settings",
   schemaVersion:8,
-  releaseDate:"September 21, 2026",
+  releaseDate:"September 22, 2026",
   releaseNotes:[
     "Rebuilds Today around ordered routines instead of clock-based time blocks.",
     "Each routine contains ordered steps, including duplicate step names.",
@@ -37,7 +37,9 @@ const APP_META={
     "Removes temporary repeats the following day and includes them in backups and recovery snapshots.",
     "Keeps temporary repeat names clearly visible in the dark Today screen.",
     "Shows Repeat only after a repeatable step is completed.",
-    "Waits for Complete Routine before collapsing the routine and unlocking the next one."
+    "Waits for Complete Routine before collapsing the routine and unlocking the next one.",
+    "Compacts routine management and the routine editor on iPhone without removing any controls.",
+    "Uses a single icon toolbar for routine actions and a clearer compact layout for each ordered step."
   ]
 };
 
@@ -1029,7 +1031,7 @@ function renderAllRoutines(){
     const stepCount=routine.steps.length+' '+(routine.steps.length===1?'step':'steps');
     row.innerHTML=
       '<div class="habit-row-main"><div class="compact-habit-title"><strong>'+escapeHtml(routine.name)+'</strong>'+(inactive?'<span class="habit-status-pill">'+(routine.paused?"Paused":"Until "+snoozeLabel(routine))+'</span>':"")+'</div><small>#'+(index+1)+' · '+escapeHtml(scheduleLabel(routine))+' · '+stepCount+' · '+(routine.lockSteps?"In order":"Any order")+' · '+(routine.startMode==="manual"?"Manual start":"Auto start")+'</small></div>'+
-      '<div class="habit-actions compact-habit-actions"><div class="reorder-actions"><button class="reorder-btn move-up-btn" type="button" '+(index===0?"disabled":"")+'>↑</button><button class="reorder-btn move-down-btn" type="button" '+(index===routines.length-1?"disabled":"")+'>↓</button></div><button class="small-btn pause-toggle-btn" type="button">'+(inactive?"Resume":"Pause")+'</button><button class="edit-btn" type="button">Edit</button><button class="danger-btn compact-delete-btn" type="button">✕</button></div>';
+      '<div class="habit-actions compact-habit-actions"><div class="reorder-actions"><button class="reorder-btn move-up-btn" type="button" aria-label="Move '+escapeHtml(routine.name)+' up" title="Move up" '+(index===0?"disabled":"")+'>↑</button><button class="reorder-btn move-down-btn" type="button" aria-label="Move '+escapeHtml(routine.name)+' down" title="Move down" '+(index===routines.length-1?"disabled":"")+'>↓</button></div><button class="small-btn pause-toggle-btn" type="button" aria-label="'+(inactive?"Resume ":"Pause ")+escapeHtml(routine.name)+'" title="'+(inactive?"Resume":"Pause")+'">'+(inactive?"▶":"Ⅱ")+'</button><button class="edit-btn" type="button" aria-label="Edit '+escapeHtml(routine.name)+'" title="Edit">✎</button><button class="danger-btn compact-delete-btn" type="button" aria-label="Delete '+escapeHtml(routine.name)+'" title="Delete">✕</button></div>';
     row.querySelector(".move-up-btn").addEventListener("click",()=>moveRoutine(routine.id,-1));
     row.querySelector(".move-down-btn").addEventListener("click",()=>moveRoutine(routine.id,1));
     row.querySelector(".pause-toggle-btn").addEventListener("click",()=>inactive?resumeRoutine(routine.id):pauseRoutine(routine.id));
@@ -1171,7 +1173,7 @@ function renderStepsEditor(){
     const row=document.createElement("div");
     row.className="routine-step-editor-row";
     const stepDays=uniqueDays(step.days);
-    row.innerHTML='<input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="small-btn duplicate-step-btn">Copy</button><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step">✕</button><label class="step-repeat-editor"><input class="step-repeatable" type="checkbox" '+(step.repeatable?"checked":"")+' /> Can repeat at the bottom today</label><div class="step-schedule-editor"><label><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every routine day</label><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div></div><div class="rotation-editor-shell">'+rotationEditorMarkup(step)+'</div>';
+    row.innerHTML='<div class="step-editor-top"><span class="step-editor-number">'+(index+1)+'</span><input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /></div><div class="step-editor-toolbar"><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" aria-label="Move step up" title="Move up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" aria-label="Move step down" title="Move down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="small-btn duplicate-step-btn" aria-label="Copy step" title="Copy step">Copy</button><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step" title="Remove step">✕</button></div><div class="step-editor-options"><label class="step-repeat-editor"><input class="step-repeatable" type="checkbox" '+(step.repeatable?"checked":"")+' /> Repeat at bottom</label><div class="step-schedule-editor"><label><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every routine day</label></div></div><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div><div class="rotation-editor-shell">'+rotationEditorMarkup(step)+'</div>';
     row.querySelector(".step-name-input").addEventListener("input",event=>selectedSteps[index].text=event.target.value);
     row.querySelector(".step-up").addEventListener("click",()=>moveEditorStep(index,-1));
     row.querySelector(".step-down").addEventListener("click",()=>moveEditorStep(index,1));

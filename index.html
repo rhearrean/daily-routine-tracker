@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Daily Routine</title>
-  <link rel="manifest" href="manifest.json?v=12.4.0" />
-  <link rel="stylesheet" href="style.css?v=12.4.0" />
+  <link rel="manifest" href="manifest.json?v=12.4.1" />
+  <link rel="stylesheet" href="style.css?v=12.4.1" />
   <meta name="theme-color" content="#111827" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 </head>
@@ -106,7 +106,7 @@
         <label>Routine start<select id="routineStartMode"><option value="automatic">Start automatically</option><option value="manual">Wait until I start it</option></select><small class="helper-text no-top">Manual routines unlock in order but stay collapsed until you press Start Routine.</small></label>
         <label>Snooze until<input id="routineSnoozeUntil" type="date" /><small class="helper-text no-top">Leave blank to keep the routine active.</small></label>
         <div class="routine-steps-editor">
-          <div class="routine-steps-editor-header"><div><label class="standalone-label">Ordered Steps</label><p class="helper-text no-top">Duplicate steps stay separate. Each step can run every routine day or only on selected weekdays.</p></div><button id="addStepBtn" class="small-btn" type="button">＋ Add Step</button></div>
+          <div class="routine-steps-editor-header"><div><label class="standalone-label">Ordered Steps</label><p class="helper-text no-top">Duplicates stay separate. Weekdays can be set per step.</p></div><button id="addStepBtn" class="small-btn" type="button">＋ Step</button></div>
           <div id="stepsEditorList"></div>
         </div>
         <button id="saveRoutineBtn" class="primary-btn" type="submit">Add Routine</button>
@@ -133,6 +133,6 @@
   </div>
 
   <input id="backupFileInput" class="hidden" type="file" accept="application/json,.json" />
-  <script src="app.js?v=12.4.0"></script>
+  <script src="app.js?v=12.4.1"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v12-4-0";
+const CACHE_NAME="daily-routine-v12-4-1";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"12.4.0",summary:"Moves Repeat to completed steps and adds manual routine completion.",notes:["Complete a repeatable step normally, then use its Repeat button whenever another copy is needed at the bottom.","Resolving every step now shows Complete Routine instead of immediately collapsing and unlocking the next routine.","Repeat before finalizing to add another pending copy; then complete or skip it normally.","Existing finalized routines remain finalized, and no routines, history, or schema 8 data is cleared."]};
-const FILES_TO_CACHE=["./index.html?v=12.4.0","./style.css?v=12.4.0","./app.js?v=12.4.0","./manifest.json?v=12.4.0","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"12.4.1",summary:"Makes routine Settings more compact and easier to scan on iPhone.",notes:["Routine management uses one compact row of icon controls instead of large wrapping buttons.","Each ordered step now has a clear name row, compact action toolbar, and smaller option controls.","All editing features remain available, with no routine, history, or schema 8 data changes."]};
+const FILES_TO_CACHE=["./index.html?v=12.4.1","./style.css?v=12.4.1","./app.js?v=12.4.1","./manifest.json?v=12.4.1","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.4.0"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.4.1"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));

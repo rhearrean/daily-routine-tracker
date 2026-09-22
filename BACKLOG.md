@@ -4,6 +4,14 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.4.1 — Compact Routine Settings
+
+- Make routine management rows shorter and prevent action text from wrapping on iPhone.
+- Use compact, labeled icon controls for order, pause/resume, edit, and delete.
+- Reorganize each step editor into a name row, action toolbar, and compact options.
+- Keep every routine and step editing feature available.
+- Preserve all routines, history, settings, and schema 8 data.
+
 ### v12.4.0 — Repeat After Completion & Manual Routine Finish
 
 - Show Repeat only after a repeatable step is completed.

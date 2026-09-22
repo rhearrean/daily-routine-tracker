@@ -10,7 +10,7 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.4\.0"/);
+assert.match(app,/version:"12\.4\.1"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
@@ -79,7 +79,11 @@ assert.match(app,/getStepState\(dateKey,routine\.id,stepId\)!=="done"/);
 assert.match(app,/class="primary-btn complete-routine-btn"/);
 assert.match(app,/Finish this routine and unlock the next one/);
 assert.match(app,/function visibleRepeatStepsForDate/);
-assert.match(app,/Can repeat at the bottom today/);
+assert.match(app,/Repeat at bottom/);
+assert.match(app,/class="step-editor-top"/);
+assert.match(app,/class="step-editor-toolbar"/);
+assert.match(app,/class="step-editor-options"/);
+assert.match(app,/aria-label="Edit /);
 assert.match(app,/class="step-repeat-btn/);
 assert.match(app,/function isRoutineStarted/);
 assert.match(app,/function startRoutineForToday/);
@@ -119,20 +123,20 @@ assert.match(html,/id="lockSteps"/);
 assert.match(html,/id="routineStartMode"/);
 assert.match(html,/Wait until I start it/);
 assert.match(html,/Complete steps in order/);
-assert.match(html,/Duplicate steps stay separate/);
-assert.match(html,/Each step can run every routine day or only on selected weekdays/);
+assert.match(html,/Duplicates stay separate/);
+assert.match(html,/Weekdays can be set per step/);
 assert.doesNotMatch(html,/id="timeBlocks"/);
 assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.4\\.0"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.4\\.1"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-4-0"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.4\.0"/);
-assert.match(worker,/Moves Repeat to completed steps/);
-assert.match(worker,/Resolving every step now shows Complete Routine/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-4-1"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.4\.1"/);
+assert.match(worker,/Makes routine Settings more compact/);
+assert.match(worker,/compact row of icon controls/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -173,7 +177,12 @@ assert.doesNotMatch(style,/\.step-undo-btn/);
 assert.match(style,/\.skip-review-details\.hidden\{display:none\}/);
 assert.match(style,/max-height:calc\(100dvh - 36px\)/);
 assert.match(style,/overflow-y:auto/);
+assert.match(style,/v12\.4\.1 — Compact routine settings and editor/);
+assert.match(style,/\.step-editor-toolbar\{/);
+assert.match(style,/\.step-editor-options\{/);
+assert.match(style,/\.compact-habit-actions \.pause-toggle-btn/);
 
+assert.match(backlog,/v12\.4\.1 — Compact Routine Settings/);
 assert.match(backlog,/v12\.4\.0 — Repeat After Completion & Manual Routine Finish/);
 assert.match(backlog,/v12\.3\.1 — Repeat Step Name Visibility/);
 assert.match(backlog,/v12\.3\.0 — Repeat a Step at the Bottom/);
@@ -181,4 +190,4 @@ assert.match(backlog,/v12\.0\.8 — Priority Next Routine/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and manual routine completion assertions passed for v12.4.0");
+console.log("Safe update and compact routine settings assertions passed for v12.4.1");
