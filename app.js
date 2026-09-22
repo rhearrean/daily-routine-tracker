@@ -1,6 +1,6 @@
 const APP_META={
-  version:"12.4.1",
-  build:"2026.09.22.compact-routine-settings",
+  version:"12.4.2",
+  build:"2026.09.22.settings-typography",
   schemaVersion:8,
   releaseDate:"September 22, 2026",
   releaseNotes:[
@@ -39,7 +39,9 @@ const APP_META={
     "Shows Repeat only after a repeatable step is completed.",
     "Waits for Complete Routine before collapsing the routine and unlocking the next one.",
     "Compacts routine management and the routine editor on iPhone without removing any controls.",
-    "Uses a single icon toolbar for routine actions and a clearer compact layout for each ordered step."
+    "Uses a single icon toolbar for routine actions and a clearer compact layout for each ordered step.",
+    "Standardizes titles, labels, descriptions, controls, and supporting text across the main Settings page.",
+    "Moves release notes into an optional information pop-up so the Version card stays compact."
   ]
 };
 
@@ -78,6 +80,8 @@ const E={
   allRoutines:$("allRoutines"),autoCollapseRoutines:$("autoCollapseRoutines"),
   exportBtn:$("exportBtn"),importBtn:$("importBtn"),backupBox:$("backupBox"),backupMessage:$("backupMessage"),
   recoveryStatus:$("recoveryStatus"),restoreRecoveryBtn:$("restoreRecoveryBtn"),appInfo:$("appInfo"),
+  openReleaseNotesBtn:$("openReleaseNotesBtn"),releaseNotesSheet:$("releaseNotesSheet"),
+  closeReleaseNotesBtn:$("closeReleaseNotesBtn"),releaseNotesVersion:$("releaseNotesVersion"),releaseNotesList:$("releaseNotesList"),
   routineEditorSheet:$("routineEditorSheet"),closeRoutineEditorBtn:$("closeRoutineEditorBtn"),
   routineForm:$("routineForm"),formModeLabel:$("formModeLabel"),formTitle:$("formTitle"),
   routineName:$("routineName"),routineSchedule:$("routineSchedule"),customDays:$("customDays"),
@@ -956,7 +960,9 @@ function renderStats(){
   });
 }
 function renderAppInfo(){
-  E.appInfo.innerHTML='<div class="info-row"><strong>Version '+APP_META.version+'</strong><small>Build '+APP_META.build+'</small><small>Schema '+APP_META.schemaVersion+'</small><small>Released '+APP_META.releaseDate+'</small></div><div class="release-note"><strong>Release Notes</strong><ul>'+APP_META.releaseNotes.map(note=>'<li>'+escapeHtml(note)+'</li>').join("")+'</ul></div>';
+  E.appInfo.innerHTML='<div class="info-row version-summary"><strong>Version '+APP_META.version+'</strong><small>Build '+APP_META.build+'</small><small>Schema '+APP_META.schemaVersion+' · Released '+APP_META.releaseDate+'</small></div>';
+  E.releaseNotesVersion.textContent="Version "+APP_META.version;
+  E.releaseNotesList.innerHTML=APP_META.releaseNotes.map(note=>'<li>'+escapeHtml(note)+'</li>').join("");
 }
 
 function moveRoutine(id,direction){
@@ -1626,6 +1632,9 @@ function render(){
   E.autoCollapseRoutines.checked=loadSettings().autoCollapseCompletedRoutines!==false;
 }
 function wireEvents(){
+  E.openReleaseNotesBtn.addEventListener("click",()=>E.releaseNotesSheet.classList.remove("hidden"));
+  E.closeReleaseNotesBtn.addEventListener("click",()=>E.releaseNotesSheet.classList.add("hidden"));
+  E.releaseNotesSheet.addEventListener("click",event=>{if(event.target===E.releaseNotesSheet)E.releaseNotesSheet.classList.add("hidden")});
   E.matchActionOneBtn.addEventListener("click",()=>finishMatchAction("one"));
   E.matchActionAllBtn.addEventListener("click",()=>finishMatchAction("all"));
   E.matchActionCancelBtn.addEventListener("click",()=>finishMatchAction("cancel"));

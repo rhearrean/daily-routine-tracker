@@ -4,6 +4,14 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.4.2 — Uniform Settings Typography
+
+- Keep the compact Manage & Order routine layout unchanged.
+- Use one consistent type scale for Settings section titles, labels, descriptions, controls, and supporting text.
+- Keep release notes hidden from the main page until the Version information button is pressed.
+- Show release notes in a separate scrollable pop-up.
+- Preserve all routines, history, settings, and schema 8 data.
+
 ### v12.4.1 — Compact Routine Settings
 
 - Make routine management rows shorter and prevent action text from wrapping on iPhone.

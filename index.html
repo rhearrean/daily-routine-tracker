@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Daily Routine</title>
-  <link rel="manifest" href="manifest.json?v=12.4.1" />
-  <link rel="stylesheet" href="style.css?v=12.4.1" />
+  <link rel="manifest" href="manifest.json?v=12.4.2" />
+  <link rel="stylesheet" href="style.css?v=12.4.2" />
   <meta name="theme-color" content="#111827" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 </head>
@@ -90,9 +90,16 @@
         <p id="backupMessage" class="helper-text"></p>
       </section>
 
-      <section class="card"><p class="label">App Info</p><h2>Version</h2><div id="appInfo" class="app-info"></div></section>
+      <section class="card version-card"><div class="section-header"><div><p class="label">App Info</p><h2>Version</h2></div><button id="openReleaseNotesBtn" class="settings-info-btn" type="button" aria-label="View release notes" title="View release notes">i</button></div><div id="appInfo" class="app-info"></div></section>
     </div>
   </section>
+
+  <div id="releaseNotesSheet" class="release-notes-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="releaseNotesTitle">
+    <div class="release-notes-card">
+      <div class="sheet-header"><div><p class="label">What’s New</p><h2 id="releaseNotesTitle">Release Notes</h2><p id="releaseNotesVersion" class="helper-text no-top"></p></div><button id="closeReleaseNotesBtn" class="icon-btn" type="button" aria-label="Close release notes">✕</button></div>
+      <ul id="releaseNotesList"></ul>
+    </div>
+  </div>
 
   <div id="routineEditorSheet" class="habit-editor-sheet hidden">
     <div class="habit-editor-card">
@@ -133,6 +140,6 @@
   </div>
 
   <input id="backupFileInput" class="hidden" type="file" accept="application/json,.json" />
-  <script src="app.js?v=12.4.1"></script>
+  <script src="app.js?v=12.4.2"></script>
 </body>
 </html>
