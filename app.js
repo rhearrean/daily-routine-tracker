@@ -1,8 +1,8 @@
 const APP_META={
-  version:"12.4.3",
-  build:"2026.09.22.compact-routine-editor",
+  version:"12.5.0",
+  build:"2026.09.30.move-steps-between-routines",
   schemaVersion:8,
-  releaseDate:"September 22, 2026",
+  releaseDate:"September 30, 2026",
   releaseNotes:[
     "Rebuilds Today around ordered routines instead of clock-based time blocks.",
     "Each routine contains ordered steps, including duplicate step names.",
@@ -44,7 +44,12 @@ const APP_META={
     "Moves release notes into an optional information pop-up so the Version card stays compact.",
     "Separates routine-level settings from ordered step settings in the routine editor.",
     "Compacts each step into a name row, one control row, and an optional rotation row.",
-    "Keeps rotating substeps collapsed until they are opened for editing."
+    "Keeps rotating substeps collapsed until they are opened for editing.",
+    "Adds a compact Move control to each step in the routine editor.",
+    "Moves one step at a time to the bottom of another routine when Save Changes is pressed.",
+    "Preserves the moved step's weekday schedule, repeat setting, and shared rotating substeps.",
+    "Provides Undo Move before saving and prevents a routine from being left without a step.",
+    "Keeps existing completion history attached to its original routine and date."
   ]
 };
 
@@ -90,8 +95,11 @@ const E={
   routineName:$("routineName"),routineSchedule:$("routineSchedule"),customDays:$("customDays"),
   lockSteps:$("lockSteps"),routineStartMode:$("routineStartMode"),routineSnoozeUntil:$("routineSnoozeUntil"),addStepBtn:$("addStepBtn"),
   stepsEditorList:$("stepsEditorList"),saveRoutineBtn:$("saveRoutineBtn"),cancelEditBtn:$("cancelEditBtn"),
+  pendingMovesNotice:$("pendingMovesNotice"),pendingMovesText:$("pendingMovesText"),undoStepMoveBtn:$("undoStepMoveBtn"),
   matchActionSheet:$("matchActionSheet"),matchActionTitle:$("matchActionTitle"),matchActionMessage:$("matchActionMessage"),
   matchActionOneBtn:$("matchActionOneBtn"),matchActionAllBtn:$("matchActionAllBtn"),matchActionCancelBtn:$("matchActionCancelBtn"),
+  stepMoveSheet:$("stepMoveSheet"),stepMoveTitle:$("stepMoveTitle"),stepMoveMessage:$("stepMoveMessage"),
+  stepMoveDestination:$("stepMoveDestination"),confirmStepMoveBtn:$("confirmStepMoveBtn"),cancelStepMoveBtn:$("cancelStepMoveBtn"),
   updateSheet:$("updateSheet"),updateExportBtn:$("updateExportBtn"),updateBackupConfirmed:$("updateBackupConfirmed"),
   installUpdateBtn:$("installUpdateBtn"),laterUpdateBtn:$("laterUpdateBtn"),updateStatus:$("updateStatus"),
   updateReleaseSummary:$("updateReleaseSummary"),updateReleaseVersion:$("updateReleaseVersion"),
@@ -102,6 +110,8 @@ let selectedDays=[];
 let selectedSteps=[];
 let selectedRotations={};
 let pendingDeleteStepIds=new Set();
+let pendingStepMoves=[];
+let pendingMoveStepIndex=null;
 let expandedRotationRows=new Set();
 let matchActionResolver=null;
 let editingRoutineId=null;
@@ -166,6 +176,17 @@ function normalizeRoutine(routine,index=0){
     snoozeUntil:String(routine.snoozeUntil||""),
     steps
   };
+}
+function applyPendingStepMoves(routines,moves){
+  const result=(Array.isArray(routines)?routines:[]).map(routine=>({...routine,steps:(Array.isArray(routine.steps)?routine.steps:[]).map(step=>({...step}))}));
+  const byId=new Map(result.map(routine=>[routine.id,routine]));
+  (Array.isArray(moves)?moves:[]).forEach(move=>{
+    const destination=byId.get(String(move&&move.toRoutineId||""));
+    const step=normalizeStep(move&&move.step);
+    if(!destination||!step.text||destination.steps.some(candidate=>candidate.id===step.id))return;
+    destination.steps.push(step);
+  });
+  return result;
 }
 function sortRoutines(routines){
   return [...routines].map(normalizeRoutine).sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name));
@@ -1157,6 +1178,38 @@ function duplicateEditorStep(index){
   selectedSteps.splice(index+1,0,{id:makeId("step"),text:source.text,createdAt:new Date().toISOString(),days:Array.isArray(source.days)?[...source.days]:null,rotationGroupId:source.rotationGroupId||"",repeatable:source.repeatable===true,originalText:"",originalRotationGroupId:""});
   renderStepsEditor();
 }
+function closeStepMoveSheet(){
+  pendingMoveStepIndex=null;
+  E.stepMoveSheet.classList.add("hidden");
+}
+function openStepMoveSheet(index){
+  if(!editingRoutineId||selectedSteps.length<=1)return;
+  const step=selectedSteps[index];
+  if(!step||!String(step.text||"").trim()){alert("Name the step before moving it.");return}
+  const destinations=loadRoutines().filter(routine=>routine.id!==editingRoutineId);
+  if(!destinations.length){alert("Add another routine before moving a step.");return}
+  pendingMoveStepIndex=index;
+  E.stepMoveTitle.textContent='Move "'+step.text.trim()+'"';
+  E.stepMoveMessage.textContent="This moves only this step. Exact-name matches stay where they are.";
+  E.stepMoveDestination.innerHTML=destinations.map(routine=>'<option value="'+escapeHtml(routine.id)+'">'+escapeHtml(routine.name)+'</option>').join("");
+  E.stepMoveSheet.classList.remove("hidden");
+}
+function confirmStepMove(){
+  const index=pendingMoveStepIndex;
+  const destination=loadRoutines().find(routine=>routine.id===E.stepMoveDestination.value&&routine.id!==editingRoutineId);
+  if(index===null||!selectedSteps[index]||!destination)return;
+  if(selectedSteps.length<=1){closeStepMoveSheet();return}
+  const [step]=selectedSteps.splice(index,1);
+  pendingStepMoves.push({step:{...step,days:Array.isArray(step.days)?[...step.days]:null},fromIndex:index,toRoutineId:destination.id,toRoutineName:destination.name});
+  closeStepMoveSheet();
+  renderStepsEditor();
+}
+function undoLastStepMove(){
+  const move=pendingStepMoves.pop();
+  if(!move)return;
+  selectedSteps.splice(Math.min(move.fromIndex,selectedSteps.length),0,move.step);
+  renderStepsEditor();
+}
 async function requestRemoveEditorStep(index){
   const source=selectedSteps[index];
   const persisted=loadRoutines();
@@ -1175,6 +1228,11 @@ async function requestRemoveEditorStep(index){
 }
 function renderStepsEditor(){
   E.stepsEditorList.innerHTML="";
+  E.pendingMovesNotice.classList.toggle("hidden",pendingStepMoves.length===0);
+  if(pendingStepMoves.length){
+    const latest=pendingStepMoves[pendingStepMoves.length-1];
+    E.pendingMovesText.textContent=pendingStepMoves.length===1?'"'+latest.step.text+'" will move to '+latest.toRoutineName+' when saved.':pendingStepMoves.length+' steps will move when saved.';
+  }
   if(!selectedSteps.length){
     E.stepsEditorList.innerHTML='<p class="helper-text no-top">Add at least one step.</p>';
     return;
@@ -1183,11 +1241,13 @@ function renderStepsEditor(){
     const row=document.createElement("div");
     row.className="routine-step-editor-row";
     const stepDays=uniqueDays(step.days);
-    row.innerHTML='<div class="step-editor-top"><span class="step-editor-number">'+(index+1)+'</span><input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /></div><div class="step-editor-controls"><div class="step-editor-toolbar"><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" aria-label="Move step up" title="Move up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" aria-label="Move step down" title="Move down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="small-btn duplicate-step-btn" aria-label="Copy step" title="Copy step">⧉</button><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step" title="Remove step">✕</button></div><div class="step-editor-options"><label class="step-repeat-editor" title="Allow this step to repeat at the bottom today"><input class="step-repeatable" type="checkbox" '+(step.repeatable?"checked":"")+' /> Repeat</label><div class="step-schedule-editor"><label title="Use this step on every scheduled routine day"><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every day</label></div></div></div><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div><div class="rotation-editor-shell">'+rotationEditorMarkup(step)+'</div>';
+    const canMove=Boolean(editingRoutineId&&selectedSteps.length>1&&loadRoutines().some(routine=>routine.id!==editingRoutineId));
+    row.innerHTML='<div class="step-editor-top"><span class="step-editor-number">'+(index+1)+'</span><input class="step-name-input" type="text" value="'+escapeHtml(step.text)+'" aria-label="Routine step '+(index+1)+'" /></div><div class="step-editor-controls"><div class="step-editor-toolbar"><div class="routine-step-reorder"><button type="button" class="reorder-btn step-up" aria-label="Move step up" title="Move up" '+(index===0?"disabled":"")+'>↑</button><button type="button" class="reorder-btn step-down" aria-label="Move step down" title="Move down" '+(index===selectedSteps.length-1?"disabled":"")+'>↓</button></div><button type="button" class="small-btn duplicate-step-btn" aria-label="Copy step" title="Copy step">⧉</button><button type="button" class="small-btn move-step-btn" aria-label="Move step to another routine" title="'+(canMove?"Move to another routine":"Keep at least one step and add another routine")+'" '+(canMove?"":"disabled")+'>→</button><button type="button" class="danger-btn remove-step-btn" aria-label="Remove step" title="Remove step">✕</button></div><div class="step-editor-options"><label class="step-repeat-editor" title="Allow this step to repeat at the bottom today"><input class="step-repeatable" type="checkbox" '+(step.repeatable?"checked":"")+' /> Repeat</label><div class="step-schedule-editor"><label title="Use this step on every scheduled routine day"><input class="step-every-day" type="checkbox" '+(stepDays.length?"":"checked")+' /> Every day</label></div></div></div><div class="step-day-buttons '+(stepDays.length?"":"hidden")+'">'+[1,2,3,4,5,6,0].map(day=>'<button type="button" data-day="'+day+'" class="'+(stepDays.includes(day)?"selected":"")+'">'+DAY_LABELS[day]+'</button>').join("")+'</div><div class="rotation-editor-shell">'+rotationEditorMarkup(step)+'</div>';
     row.querySelector(".step-name-input").addEventListener("input",event=>selectedSteps[index].text=event.target.value);
     row.querySelector(".step-up").addEventListener("click",()=>moveEditorStep(index,-1));
     row.querySelector(".step-down").addEventListener("click",()=>moveEditorStep(index,1));
     row.querySelector(".duplicate-step-btn").addEventListener("click",()=>duplicateEditorStep(index));
+    row.querySelector(".move-step-btn").addEventListener("click",()=>openStepMoveSheet(index));
     row.querySelector(".remove-step-btn").addEventListener("click",()=>requestRemoveEditorStep(index));
     row.querySelector(".step-repeatable").addEventListener("change",event=>selectedSteps[index].repeatable=event.target.checked);
     const editorRotation=row.querySelector(".rotation-editor");
@@ -1250,6 +1310,8 @@ function resetRoutineForm(){
   selectedSteps=[];
   selectedRotations=JSON.parse(JSON.stringify(loadRotations()));
   pendingDeleteStepIds=new Set();
+  pendingStepMoves=[];
+  closeStepMoveSheet();
   renderStepsEditor();
 }
 function openRoutineEditor(){
@@ -1278,6 +1340,7 @@ function startEditRoutine(id){
   setSelectedDays(routine.days);
   selectedRotations=JSON.parse(JSON.stringify(loadRotations()));
   pendingDeleteStepIds=new Set();
+  pendingStepMoves=[];
   selectedSteps=routine.steps.map(step=>({...step,days:Array.isArray(step.days)?[...step.days]:null,originalText:step.text,originalRotationGroupId:step.rotationGroupId||""}));
   renderStepsEditor();
   openRoutineEditor();
@@ -1324,6 +1387,7 @@ async function saveRoutineFromForm(event){
     }else{
       routines.push(normalizeRoutine({id:makeId(name),name,schedule,days:schedule==="custom"?selectedDays:[],order:(routines.length+1)*10,lockSteps:E.lockSteps.checked,startMode:E.routineStartMode.value,snoozeUntil:E.routineSnoozeUntil.value,steps}));
     }
+    routines=applyPendingStepMoves(routines,pendingStepMoves.filter(move=>!pendingDeleteStepIds.has(move.step.id)));
     renameAll.forEach(operation=>routines.forEach(routine=>routine.steps.forEach(step=>{if(operation.ids.includes(step.id))step.text=operation.text})));
     linkAll.forEach(operation=>routines.forEach(routine=>routine.steps.forEach(step=>{if(operation.ids.includes(step.id))step.rotationGroupId=operation.groupId})));
     const rotations={};
@@ -1649,6 +1713,10 @@ function wireEvents(){
   E.matchActionAllBtn.addEventListener("click",()=>finishMatchAction("all"));
   E.matchActionCancelBtn.addEventListener("click",()=>finishMatchAction("cancel"));
   E.matchActionSheet.addEventListener("click",event=>{if(event.target===E.matchActionSheet)finishMatchAction("cancel")});
+  E.confirmStepMoveBtn.addEventListener("click",confirmStepMove);
+  E.cancelStepMoveBtn.addEventListener("click",closeStepMoveSheet);
+  E.stepMoveSheet.addEventListener("click",event=>{if(event.target===E.stepMoveSheet)closeStepMoveSheet()});
+  E.undoStepMoveBtn.addEventListener("click",undoLastStepMove);
   E.openAddRoutineBtn.addEventListener("click",openAddRoutine);
   E.settingsAddRoutineBtn.addEventListener("click",openAddRoutine);
   E.closeRoutineEditorBtn.addEventListener("click",()=>{resetRoutineForm();closeRoutineEditor()});

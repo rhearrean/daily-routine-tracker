@@ -35,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,loadStepRepeats,saveStepRepeats,clearExpiredStepRepeats,visibleRepeatStepsForDate,repeatStepForToday,routineReadyToComplete,completeRoutineForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,loadStepRepeats,saveStepRepeats,clearExpiredStepRepeats,visibleRepeatStepsForDate,repeatStepForToday,routineReadyToComplete,completeRoutineForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,applyPendingStepMoves,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -322,4 +322,19 @@ api.saveStepRepeats([...api.loadStepRepeats(),{id:"old-repeat",date:"2000-01-01"
 api.clearExpiredStepRepeats();
 assert.equal(api.loadStepRepeats().some(item=>item.id==="old-repeat"),false,"Expired temporary repeats are removed");
 
-console.log("Routine migration, rotation, duplicate step, schedule, lock, and repeat assertions passed");
+const moveSource=api.normalizeRoutine({id:"move-source",name:"Morning",steps:[
+  {id:"stay",text:"Stay Here"},
+  {id:"move-me",text:"Move Me",days:[1,3],repeatable:true,rotationGroupId:"shared"}
+]});
+const moveDestination=api.normalizeRoutine({id:"move-destination",name:"Evening",steps:[{id:"last",text:"Existing Last Step"}]});
+const moved=api.applyPendingStepMoves(
+  [{...moveSource,steps:[moveSource.steps[0]]},moveDestination],
+  [{toRoutineId:"move-destination",step:moveSource.steps[1]}]
+);
+assert.deepEqual(JSON.parse(JSON.stringify(moved[0].steps.map(step=>step.id))),["stay"],"The source routine keeps its remaining step");
+assert.deepEqual(JSON.parse(JSON.stringify(moved[1].steps.map(step=>step.id))),["last","move-me"],"A moved step is appended to the destination");
+assert.deepEqual(JSON.parse(JSON.stringify(moved[1].steps[1].days)),[1,3],"A moved step keeps its weekday schedule");
+assert.equal(moved[1].steps[1].repeatable,true,"A moved step keeps its Repeat setting");
+assert.equal(moved[1].steps[1].rotationGroupId,"shared","A moved step keeps its shared rotation");
+
+console.log("Routine migration, rotation, duplicate step, schedule, lock, repeat, and move assertions passed");

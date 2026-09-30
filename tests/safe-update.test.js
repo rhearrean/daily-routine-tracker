@@ -10,7 +10,7 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.4\.3"/);
+assert.match(app,/version:"12\.5\.0"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
@@ -98,6 +98,9 @@ assert.match(app,/class="primary-btn start-routine-btn"/);
 assert.match(app,/function rotateSubstep/);
 assert.match(app,/function duplicateEditorStep/);
 assert.match(app,/function requestRemoveEditorStep/);
+assert.match(app,/function openStepMoveSheet/);
+assert.match(app,/function applyPendingStepMoves/);
+assert.match(app,/class="small-btn move-step-btn"/);
 assert.match(app,/function askMatchAction/);
 assert.match(app,/Apply & Link All Matches/);
 assert.match(app,/Array\.isArray\(parsed\.stepPriorities\)/);
@@ -138,18 +141,20 @@ assert.match(html,/Wait until I start it/);
 assert.match(html,/Complete steps in order/);
 assert.match(html,/Duplicates stay separate/);
 assert.match(html,/Weekdays can be set per step/);
+assert.match(html,/id="stepMoveSheet"/);
+assert.match(html,/id="pendingMovesNotice"/);
 assert.doesNotMatch(html,/id="timeBlocks"/);
 assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.4\\.3"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.5\\.0"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-4-3"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.4\.3"/);
-assert.match(worker,/Separates routine settings from step settings/);
-assert.match(worker,/Rotating substeps stay collapsed until opened/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-5-0"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.5\.0"/);
+assert.match(worker,/Lets one step move safely/);
+assert.match(worker,/shared rotating substeps move with the step/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -203,7 +208,10 @@ assert.match(style,/v12\.4\.3 — Compact routine editor/);
 assert.match(style,/\.routine-settings-editor\{/);
 assert.match(style,/\.step-editor-controls\{/);
 assert.match(style,/\.rotation-editor\[open\]/);
+assert.match(style,/\.step-move-sheet\.hidden\{display:none\}/);
+assert.match(style,/\.pending-moves-notice\.hidden\{display:none\}/);
 
+assert.match(backlog,/v12\.5\.0 — Move Steps Between Routines/);
 assert.match(backlog,/v12\.4\.3 — Compact Routine Editor/);
 assert.match(backlog,/v12\.4\.2 — Uniform Settings Typography/);
 assert.match(backlog,/v12\.4\.1 — Compact Routine Settings/);
@@ -214,4 +222,4 @@ assert.match(backlog,/v12\.0\.8 — Priority Next Routine/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and compact routine editor assertions passed for v12.4.3");
+console.log("Safe update and move-step assertions passed for v12.5.0");

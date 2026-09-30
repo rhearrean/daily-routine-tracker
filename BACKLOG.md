@@ -4,6 +4,17 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.5.0 — Move Steps Between Routines
+
+- Add a compact Move control to each saved step in the routine editor.
+- Move only the selected step; identical names in other routines remain unchanged.
+- Append the moved step to the bottom of the chosen destination routine.
+- Preserve its weekday schedule, Repeat setting, and shared rotating substeps.
+- Stage moves until Save Changes and provide Undo Move before saving.
+- Prevent a routine from being left without a step.
+- Keep existing completion history attached to its original routine and date.
+- Preserve all routines, settings, history, safe updates, and schema 8 data.
+
 ### v12.4.3 — Compact Routine Editor
 
 - Separate routine-level schedule and behavior controls from ordered step settings.
