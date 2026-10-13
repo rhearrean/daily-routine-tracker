@@ -4,6 +4,13 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.5.1 — Today-Only Switch Selector Fix
+
+- Keep the selected **Instead of** routine when its replacement list refreshes.
+- Allow an existing Today-only switch to be changed to a different source routine.
+- Continue excluding the selected source routine from the replacement choices.
+- Preserve all routines, steps, history, settings, safe updates, and schema 8 data.
+
 ### v12.5.0 — Move Steps Between Routines
 
 - Add a compact Move control to each saved step in the routine editor.

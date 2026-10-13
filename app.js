@@ -1,8 +1,8 @@
 const APP_META={
-  version:"12.5.0",
-  build:"2026.09.30.move-steps-between-routines",
+  version:"12.5.1",
+  build:"2026.10.13.routine-switch-selector-fix",
   schemaVersion:8,
-  releaseDate:"September 30, 2026",
+  releaseDate:"October 13, 2026",
   releaseNotes:[
     "Rebuilds Today around ordered routines instead of clock-based time blocks.",
     "Each routine contains ordered steps, including duplicate step names.",
@@ -49,7 +49,9 @@ const APP_META={
     "Moves one step at a time to the bottom of another routine when Save Changes is pressed.",
     "Preserves the moved step's weekday schedule, repeat setting, and shared rotating substeps.",
     "Provides Undo Move before saving and prevents a routine from being left without a step.",
-    "Keeps existing completion history attached to its original routine and date."
+    "Keeps existing completion history attached to its original routine and date.",
+    "Fixes the Today-only switch so the first routine selector keeps the routine you choose.",
+    "Allows an existing Today switch to be changed without forcing its original source routine back into the selector."
   ]
 };
 
@@ -1070,12 +1072,18 @@ function renderAllRoutines(){
     E.allRoutines.appendChild(row);
   });
 }
-function renderRoutineSwitch(){
+function routineSwitchSourceId(scheduled,active,preferredSourceId=""){
+  if(scheduled.some(routine=>routine.id===preferredSourceId))return preferredSourceId;
+  if(active&&scheduled.some(routine=>routine.id===active.fromRoutineId))return active.fromRoutineId;
+  return scheduled[0]?.id||"";
+}
+function renderRoutineSwitch(preferredSourceId=""){
   const all=loadRoutines();
   const scheduled=all.filter(routine=>routineAvailable(routine,new Date())&&scheduleMatches(routine,new Date()));
   const active=activeTodayRoutineSwitch();
+  const requestedSourceId=preferredSourceId||E.todayRoutineSwitchFrom.value;
   E.todayRoutineSwitchFrom.innerHTML=scheduled.map(routine=>'<option value="'+escapeHtml(routine.id)+'">'+escapeHtml(routine.name)+'</option>').join("");
-  const sourceId=active&&active.fromRoutineId||E.todayRoutineSwitchFrom.value||scheduled[0]?.id||"";
+  const sourceId=routineSwitchSourceId(scheduled,active,requestedSourceId);
   E.todayRoutineSwitchFrom.value=sourceId;
   const targets=all.filter(routine=>routineAvailable(routine,new Date())&&routine.id!==sourceId);
   E.todayRoutineSwitchTo.innerHTML=targets.map(routine=>'<option value="'+escapeHtml(routine.id)+'">'+escapeHtml(routine.name)+'</option>').join("");
@@ -1742,7 +1750,7 @@ function wireEvents(){
   });
   E.endOfDayReviewBtn.addEventListener("click",()=>{skipReviewExpanded=!skipReviewExpanded;render()});
   E.endOfDayRoutineBtn.addEventListener("click",()=>{endOfDayRoutineExpanded=!endOfDayRoutineExpanded;render()});
-  E.todayRoutineSwitchFrom.addEventListener("change",renderRoutineSwitch);
+  E.todayRoutineSwitchFrom.addEventListener("change",event=>renderRoutineSwitch(event.target.value));
   E.applyTodayRoutineSwitchBtn.addEventListener("click",applyTodayRoutineSwitch);
   E.clearTodayRoutineSwitchBtn.addEventListener("click",clearTodayRoutineSwitch);
   E.autoCollapseRoutines.addEventListener("change",()=>{

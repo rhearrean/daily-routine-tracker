@@ -35,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,loadStepRepeats,saveStepRepeats,clearExpiredStepRepeats,visibleRepeatStepsForDate,repeatStepForToday,routineReadyToComplete,completeRoutineForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,applyPendingStepMoves,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,loadStepRepeats,saveStepRepeats,clearExpiredStepRepeats,visibleRepeatStepsForDate,repeatStepForToday,routineReadyToComplete,completeRoutineForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,applyPendingStepMoves,routineSwitchSourceId,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -337,4 +337,10 @@ assert.deepEqual(JSON.parse(JSON.stringify(moved[1].steps[1].days)),[1,3],"A mov
 assert.equal(moved[1].steps[1].repeatable,true,"A moved step keeps its Repeat setting");
 assert.equal(moved[1].steps[1].rotationGroupId,"shared","A moved step keeps its shared rotation");
 
-console.log("Routine migration, rotation, duplicate step, schedule, lock, repeat, and move assertions passed");
+const switchRoutines=[{id:"morning"},{id:"office"},{id:"evening"}];
+assert.equal(api.routineSwitchSourceId(switchRoutines,null,"office"),"office","A newly selected switch source must not reset to the first routine");
+assert.equal(api.routineSwitchSourceId(switchRoutines,{fromRoutineId:"morning"},"office"),"office","A new selection must override an existing Today switch source");
+assert.equal(api.routineSwitchSourceId(switchRoutines,{fromRoutineId:"office"},""),"office","The saved Today switch remains the initial selection");
+assert.equal(api.routineSwitchSourceId(switchRoutines,null,"missing"),"morning","An unavailable selection safely falls back to the first scheduled routine");
+
+console.log("Routine migration, rotation, duplicate step, schedule, lock, repeat, move, and switch assertions passed");

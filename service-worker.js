@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v12-5-0";
+const CACHE_NAME="daily-routine-v12-5-1";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"12.5.0",summary:"Lets one step move safely from one routine to another.",notes:["Each saved step has a compact Move control in the routine editor.","Choose a destination routine and the step is appended to its bottom when Save Changes is pressed.","Weekday scheduling, Repeat, and shared rotating substeps move with the step.","Undo Move is available before saving, and a routine cannot be left without a step.","Existing history, settings, and schema 8 data remain unchanged."]};
-const FILES_TO_CACHE=["./index.html?v=12.5.0","./style.css?v=12.5.0","./app.js?v=12.5.0","./manifest.json?v=12.5.0","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"12.5.1",summary:"Fixes the first selector in the Today-only routine switch.",notes:["The Instead of selector now keeps the routine you choose instead of jumping back to the first routine.","An existing Today switch can now be changed to a different source routine.","The replacement selector still refreshes so it cannot contain the same routine as the source.","No routines, steps, history, settings, or schema 8 data are changed."]};
+const FILES_TO_CACHE=["./index.html?v=12.5.1","./style.css?v=12.5.1","./app.js?v=12.5.1","./manifest.json?v=12.5.1","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.5.0"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.5.1"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));
