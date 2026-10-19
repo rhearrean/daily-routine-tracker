@@ -10,7 +10,7 @@ const worker=read("service-worker.js");
 const style=read("style.css");
 const backlog=read("BACKLOG.md");
 
-assert.match(app,/version:"12\.5\.1"/);
+assert.match(app,/version:"12\.6\.0"/);
 assert.match(app,/schemaVersion:8/);
 assert.match(app,/const ROUTINES_KEY="dailyRoutineRoutines\.v12"/);
 assert.match(app,/const PROGRESS_KEY="dailyRoutineProgress\.v12"/);
@@ -34,8 +34,8 @@ assert.match(app,/startMode:routine\.startMode==="manual"\?"manual":"automatic"/
 assert.match(app,/repeatable:step&&step\.repeatable===true/);
 assert.match(app,/function sortRoutines/);
 assert.match(app,/function dueRoutinesOn/);
-assert.match(app,/todayRoutineSwitch/);
-assert.match(app,/fromRoutineId,toRoutineId/);
+assert.match(app,/todayRoutineAdditions/);
+assert.match(app,/routineIds/);
 assert.match(app,/function visibleStepsForDate/);
 assert.match(app,/function claimPriorityCarryoversForDate/);
 assert.match(app,/function visiblePriorityStepsForDate/);
@@ -101,8 +101,11 @@ assert.match(app,/function requestRemoveEditorStep/);
 assert.match(app,/function openStepMoveSheet/);
 assert.match(app,/function applyPendingStepMoves/);
 assert.match(app,/class="small-btn move-step-btn"/);
-assert.match(app,/function routineSwitchSourceId/);
-assert.match(app,/renderRoutineSwitch\(event\.target\.value\)/);
+assert.match(app,/function activeTodayRoutineAdditions/);
+assert.match(app,/function migrateTodayRoutineSwitch/);
+assert.match(app,/function renderRoutineAdditions/);
+assert.match(app,/function addTodayRoutine/);
+assert.match(app,/function clearTodayRoutineAdditions/);
 assert.match(app,/function askMatchAction/);
 assert.match(app,/Apply & Link All Matches/);
 assert.match(app,/Array\.isArray\(parsed\.stepPriorities\)/);
@@ -126,8 +129,11 @@ assert.match(app,/if\(sameWaitingUpdate\)return/);
 
 assert.match(html,/id="routineList"/);
 assert.match(html,/id="todayProgressText"/);
-assert.match(html,/id="todayRoutineSwitchFrom"/);
-assert.match(html,/id="todayRoutineSwitchTo"/);
+assert.match(html,/id="todayRoutineAddSelect"/);
+assert.match(html,/id="addTodayRoutineBtn"/);
+assert.match(html,/id="clearTodayRoutinesBtn"/);
+assert.match(html,/Add an unscheduled routine without replacing anything/);
+assert.doesNotMatch(html,/id="todayRoutineSwitchFrom"/);
 assert.match(html,/id="allRoutines"/);
 assert.match(html,/id="autoCollapseRoutines"/);
 assert.match(html,/id="routineForm"/);
@@ -150,13 +156,13 @@ assert.doesNotMatch(html,/id="occurrenceBlocks"/);
 assert.doesNotMatch(html,/Target \/ cutoff time/);
 
 for(const asset of ["manifest.json","style.css","app.js"]){
-  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.5\\.1"));
+  assert.match(html,new RegExp(asset.replace(".","\\.")+"[?]v=12\\.6\\.0"));
 }
 
-assert.match(worker,/CACHE_NAME="daily-routine-v12-5-1"/);
-assert.match(worker,/const RELEASE_META=\{version:"12\.5\.1"/);
-assert.match(worker,/Fixes the first selector/);
-assert.match(worker,/Instead of selector now keeps the routine/);
+assert.match(worker,/CACHE_NAME="daily-routine-v12-6-0"/);
+assert.match(worker,/const RELEASE_META=\{version:"12\.6\.0"/);
+assert.match(worker,/Adds unscheduled routines to Today/);
+assert.match(worker,/normally scheduled routines stay in place/);
 assert.match(worker,/UPDATE_GATE_BOOTSTRAP=false/);
 assert.match(worker,/if\(UPDATE_GATE_BOOTSTRAP\)self\.skipWaiting\(\)/);
 assert.match(worker,/ACTIVATE_AFTER_BACKUP/);
@@ -212,7 +218,9 @@ assert.match(style,/\.step-editor-controls\{/);
 assert.match(style,/\.rotation-editor\[open\]/);
 assert.match(style,/\.step-move-sheet\.hidden\{display:none\}/);
 assert.match(style,/\.pending-moves-notice\.hidden\{display:none\}/);
+assert.match(style,/\.today-routine-add-field\{grid-template-columns:1fr\}/);
 
+assert.match(backlog,/v12\.6\.0 — Add Routines for Today/);
 assert.match(backlog,/v12\.5\.1 — Today-Only Switch Selector Fix/);
 assert.match(backlog,/v12\.5\.0 — Move Steps Between Routines/);
 assert.match(backlog,/v12\.4\.3 — Compact Routine Editor/);
@@ -225,4 +233,4 @@ assert.match(backlog,/v12\.0\.8 — Priority Next Routine/);
 assert.match(backlog,/Household accounts and sharing/);
 assert.match(backlog,/Retire repeat counters/);
 
-console.log("Safe update and routine-switch assertions passed for v12.5.1");
+console.log("Safe update and Today-only routine addition assertions passed for v12.6.0");

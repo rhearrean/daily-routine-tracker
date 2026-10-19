@@ -35,7 +35,7 @@ const sandbox={
   Date
 };
 vm.createContext(sandbox);
-const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,loadStepRepeats,saveStepRepeats,clearExpiredStepRepeats,visibleRepeatStepsForDate,repeatStepForToday,routineReadyToComplete,completeRoutineForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,applyPendingStepMoves,routineSwitchSourceId,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
+const expose="\nrender=()=>{};\nglobalThis.testApi={migrateLegacyData,loadRoutines,loadProgress,loadStepState,loadStepOverrides,loadPriorityCarryovers,savePriorityCarryovers,loadRotations,saveRotations,loadRoutineStarts,saveRoutineStarts,clearExpiredRoutineStarts,isRoutineStarted,startRoutineForToday,loadStepRepeats,saveStepRepeats,clearExpiredStepRepeats,visibleRepeatStepsForDate,repeatStepForToday,routineReadyToComplete,completeRoutineForToday,orderedRotationItems,rotateSubstep,normalizedStepName,saveRoutines,saveSettings,dueRoutinesOn,setStepStatus,getStepState,isRoutineDone,normalizeRoutine,applyPendingStepMoves,activeTodayRoutineAdditions,migrateTodayRoutineSwitch,baseScheduledRoutinesOn,scheduledRoutinesOn,scheduleMatches,stepRunsOn,claimPriorityCarryoversForDate,visibleStepsForDate,togglePriorityNextTime,pendingMatchingSteps,applyTodayStepReplacement,currentRoutineForDate,makeBackupPayload};";
 vm.runInContext(source.slice(0,bootIndex)+expose,sandbox);
 const api=sandbox.testApi;
 
@@ -221,15 +221,15 @@ assert.equal(api.loadPriorityCarryovers()[0].claimedDate,"2026-09-21","A priorit
 localStorage.clear();
 const routineSet=[
   api.normalizeRoutine({id:"morning",name:"Morning",schedule:"daily",order:10,steps:[{id:"m",text:"Morning",createdAt:""}]}),
-  api.normalizeRoutine({id:"office",name:"Office",schedule:"daily",order:20,steps:[{id:"o",text:"Office",createdAt:""}]}),
-  api.normalizeRoutine({id:"wfh",name:"WFH",schedule:"custom",days:[],order:30,steps:[{id:"w",text:"WFH",createdAt:""}]}),
+  api.normalizeRoutine({id:"wfh",name:"WFH",schedule:"custom",days:[],order:20,steps:[{id:"w",text:"WFH",createdAt:""}]}),
+  api.normalizeRoutine({id:"lunch",name:"Lunch",schedule:"daily",order:30,steps:[{id:"l",text:"Lunch",createdAt:""}]}),
   api.normalizeRoutine({id:"evening",name:"Evening",schedule:"daily",order:40,steps:[{id:"e",text:"Evening",createdAt:""}]})
 ];
 api.saveRoutines(routineSet);
-api.saveSettings({todayRoutineSwitch:{date:todayKey,fromRoutineId:"office",toRoutineId:"wfh"}});
-const switchedDue=api.dueRoutinesOn(today);
-assert.deepEqual(JSON.parse(JSON.stringify(switchedDue.map(routine=>routine.name))),["Morning","WFH","Evening"]);
-assert.equal(api.currentRoutineForDate(switchedDue,todayKey).name,"Morning");
+api.saveSettings({todayRoutineAdditions:{date:todayKey,routineIds:["wfh"]}});
+const addedDue=api.dueRoutinesOn(today);
+assert.deepEqual(JSON.parse(JSON.stringify(addedDue.map(routine=>routine.name))),["Morning","WFH","Lunch","Evening"],"A Today-only addition keeps all scheduled routines and uses its saved order");
+assert.equal(api.currentRoutineForDate(addedDue,todayKey).name,"Morning");
 
 localStorage.setItem("dailyRoutineProgress.v12",JSON.stringify({
   [todayKey]:{morning:{state:"done",completedAt:""}}
@@ -337,10 +337,9 @@ assert.deepEqual(JSON.parse(JSON.stringify(moved[1].steps[1].days)),[1,3],"A mov
 assert.equal(moved[1].steps[1].repeatable,true,"A moved step keeps its Repeat setting");
 assert.equal(moved[1].steps[1].rotationGroupId,"shared","A moved step keeps its shared rotation");
 
-const switchRoutines=[{id:"morning"},{id:"office"},{id:"evening"}];
-assert.equal(api.routineSwitchSourceId(switchRoutines,null,"office"),"office","A newly selected switch source must not reset to the first routine");
-assert.equal(api.routineSwitchSourceId(switchRoutines,{fromRoutineId:"morning"},"office"),"office","A new selection must override an existing Today switch source");
-assert.equal(api.routineSwitchSourceId(switchRoutines,{fromRoutineId:"office"},""),"office","The saved Today switch remains the initial selection");
-assert.equal(api.routineSwitchSourceId(switchRoutines,null,"missing"),"morning","An unavailable selection safely falls back to the first scheduled routine");
+localStorage.setItem("dailyRoutineSettings.v12",JSON.stringify({todayRoutineSwitch:{date:todayKey,fromRoutineId:"lunch",toRoutineId:"wfh"}}));
+assert.equal(api.migrateTodayRoutineSwitch(),true,"An old Today switch should migrate once");
+assert.deepEqual(JSON.parse(JSON.stringify(api.activeTodayRoutineAdditions().routineIds)),["wfh"],"The old replacement becomes a Today-only addition");
+assert.equal(JSON.parse(localStorage.getItem("dailyRoutineSettings.v12")).todayRoutineSwitch,undefined,"The retired switch setting is removed after migration");
 
-console.log("Routine migration, rotation, duplicate step, schedule, lock, repeat, move, and switch assertions passed");
+console.log("Routine migration, rotation, duplicate step, schedule, lock, repeat, move, and Today-addition assertions passed");

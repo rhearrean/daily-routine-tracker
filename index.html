@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Daily Routine</title>
-  <link rel="manifest" href="manifest.json?v=12.5.1" />
-  <link rel="stylesheet" href="style.css?v=12.5.1" />
+  <link rel="manifest" href="manifest.json?v=12.6.0" />
+  <link rel="stylesheet" href="style.css?v=12.6.0" />
   <meta name="theme-color" content="#111827" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 </head>
@@ -67,10 +67,10 @@
       <div class="settings-header"><div><p class="eyebrow">Daily Routine</p><h1>Settings</h1></div><button id="closeSettingsBtn" class="icon-btn" type="button">✕</button></div>
 
       <section class="card compact-settings-card">
-        <div><p class="label">Today Only</p><h2>Switch Routine</h2><p class="helper-text no-top">Temporarily replace one scheduled routine. Your normal schedule returns tomorrow.</p></div>
-        <div class="today-block-switch-fields"><label>Instead of<select id="todayRoutineSwitchFrom"></select></label><label>Use today<select id="todayRoutineSwitchTo"></select></label></div>
-        <div class="today-block-switch-actions"><button id="applyTodayRoutineSwitchBtn" class="primary-btn inline" type="button">Apply Today</button><button id="clearTodayRoutineSwitchBtn" class="small-btn hidden" type="button">Clear Today’s Switch</button></div>
-        <p id="todayRoutineSwitchStatus" class="helper-text no-top"></p>
+        <div><p class="label">Today Only</p><h2>Add Routine Today</h2><p class="helper-text no-top">Add an unscheduled routine without replacing anything. Your normal schedule returns tomorrow.</p></div>
+        <div class="today-block-switch-fields today-routine-add-field"><label>Routine<select id="todayRoutineAddSelect"></select></label></div>
+        <div class="today-block-switch-actions"><button id="addTodayRoutineBtn" class="primary-btn inline" type="button">Add Today</button><button id="clearTodayRoutinesBtn" class="small-btn hidden" type="button">Clear Added Routines</button></div>
+        <p id="todayRoutineAddStatus" class="helper-text no-top"></p>
       </section>
 
       <section class="card">
@@ -154,6 +154,6 @@
   </div>
 
   <input id="backupFileInput" class="hidden" type="file" accept="application/json,.json" />
-  <script src="app.js?v=12.5.1"></script>
+  <script src="app.js?v=12.6.0"></script>
 </body>
 </html>

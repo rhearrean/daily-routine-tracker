@@ -4,6 +4,16 @@ This roadmap reflects the routine-first redesign chosen after using the app dail
 
 ## Current release
 
+### v12.6.0 — Add Routines for Today
+
+- Replace Today-only routine switching with adding an unscheduled routine for Today.
+- Keep every normally scheduled routine in place rather than hiding a source routine.
+- Insert temporary additions according to their normal saved routine order.
+- Allow more than one routine to be added for the current day.
+- Clear temporary additions automatically the following day or manually from Settings.
+- Convert an active old-style switch into a Today-only addition so its replacement choice is retained.
+- Preserve all routine schedules, steps, progress, history, safe updates, and schema 8 data.
+
 ### v12.5.1 — Today-Only Switch Selector Fix
 
 - Keep the selected **Instead of** routine when its replacement list refreshes.

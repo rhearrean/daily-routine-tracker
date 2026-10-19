@@ -1,8 +1,8 @@
 const APP_META={
-  version:"12.5.1",
-  build:"2026.10.13.routine-switch-selector-fix",
+  version:"12.6.0",
+  build:"2026.10.19.today-only-routine-additions",
   schemaVersion:8,
-  releaseDate:"October 13, 2026",
+  releaseDate:"October 19, 2026",
   releaseNotes:[
     "Rebuilds Today around ordered routines instead of clock-based time blocks.",
     "Each routine contains ordered steps, including duplicate step names.",
@@ -51,7 +51,11 @@ const APP_META={
     "Provides Undo Move before saving and prevents a routine from being left without a step.",
     "Keeps existing completion history attached to its original routine and date.",
     "Fixes the Today-only switch so the first routine selector keeps the routine you choose.",
-    "Allows an existing Today switch to be changed without forcing its original source routine back into the selector."
+    "Allows an existing Today switch to be changed without forcing its original source routine back into the selector.",
+    "Replaces Today-only routine switching with adding unscheduled routines for Today.",
+    "Keeps every normally scheduled routine while placing added routines in their saved order.",
+    "Supports adding more than one routine for Today and clears all temporary additions tomorrow.",
+    "Converts an active old-style switch into an added routine without losing its replacement choice."
   ]
 };
 
@@ -84,9 +88,8 @@ const E={
   statsPanel:$("statsPanel"),closeStatsBtn:$("closeStatsBtn"),streakText:$("streakText"),weekText:$("weekText"),
   recentDays:$("recentDays"),routineStats:$("routineStats"),
   settingsPanel:$("settingsPanel"),closeSettingsBtn:$("closeSettingsBtn"),
-  todayRoutineSwitchFrom:$("todayRoutineSwitchFrom"),todayRoutineSwitchTo:$("todayRoutineSwitchTo"),
-  applyTodayRoutineSwitchBtn:$("applyTodayRoutineSwitchBtn"),clearTodayRoutineSwitchBtn:$("clearTodayRoutineSwitchBtn"),
-  todayRoutineSwitchStatus:$("todayRoutineSwitchStatus"),settingsAddRoutineBtn:$("settingsAddRoutineBtn"),
+  todayRoutineAddSelect:$("todayRoutineAddSelect"),addTodayRoutineBtn:$("addTodayRoutineBtn"),
+  clearTodayRoutinesBtn:$("clearTodayRoutinesBtn"),todayRoutineAddStatus:$("todayRoutineAddStatus"),settingsAddRoutineBtn:$("settingsAddRoutineBtn"),
   allRoutines:$("allRoutines"),autoCollapseRoutines:$("autoCollapseRoutines"),
   exportBtn:$("exportBtn"),importBtn:$("importBtn"),backupBox:$("backupBox"),backupMessage:$("backupMessage"),
   recoveryStatus:$("recoveryStatus"),restoreRecoveryBtn:$("restoreRecoveryBtn"),appInfo:$("appInfo"),
@@ -455,29 +458,42 @@ function isRoutinePausedOn(routine,date=new Date()){
 function routineAvailable(routine,date){
   return !isRoutinePausedOn(routine,date)&&!isRoutineSnoozed(routine,date);
 }
-function activeTodayRoutineSwitch(date=new Date()){
-  const value=loadSettings().todayRoutineSwitch;
-  return value&&value.date===getLocalDateKey(date)&&value.fromRoutineId&&value.toRoutineId&&value.fromRoutineId!==value.toRoutineId?value:null;
+function activeTodayRoutineAdditions(date=new Date()){
+  const value=loadSettings().todayRoutineAdditions;
+  const routineIds=[...new Set((Array.isArray(value&&value.routineIds)?value.routineIds:[]).map(String).filter(Boolean))];
+  return value&&value.date===getLocalDateKey(date)&&routineIds.length?{date:value.date,routineIds}:null;
 }
-function clearExpiredTodayRoutineSwitch(){
+function migrateTodayRoutineSwitch(){
   const settings=loadSettings();
-  if(!settings.todayRoutineSwitch||settings.todayRoutineSwitch.date===getTodayKey())return false;
+  const switched=settings.todayRoutineSwitch;
+  if(!switched)return false;
+  if(switched.date===getTodayKey()&&switched.toRoutineId){
+    const existing=settings.todayRoutineAdditions&&settings.todayRoutineAdditions.date===getTodayKey()?settings.todayRoutineAdditions.routineIds:[];
+    settings.todayRoutineAdditions={date:getTodayKey(),routineIds:[...new Set([...(Array.isArray(existing)?existing:[]),switched.toRoutineId])].map(String)};
+  }
   delete settings.todayRoutineSwitch;
   localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));
   return true;
 }
+function clearExpiredTodayRoutineAdditions(){
+  const settings=loadSettings();
+  if(!settings.todayRoutineAdditions||settings.todayRoutineAdditions.date===getTodayKey())return false;
+  delete settings.todayRoutineAdditions;
+  localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));
+  return true;
+}
+function baseScheduledRoutinesOn(date=new Date()){
+  return loadRoutines().filter(routine=>routineAvailable(routine,date)&&scheduleMatches(routine,date));
+}
 function scheduledRoutinesOn(date=new Date()){
   const all=loadRoutines();
-  let due=all.filter(routine=>routineAvailable(routine,date)&&scheduleMatches(routine,date));
-  const switched=activeTodayRoutineSwitch(date);
-  if(switched){
-    const source=due.find(routine=>routine.id===switched.fromRoutineId);
-    const replacement=all.find(routine=>routine.id===switched.toRoutineId&&routineAvailable(routine,date));
-    if(source&&replacement){
-      due=due.filter(routine=>routine.id!==source.id&&routine.id!==replacement.id);
-      due.push({...replacement,order:source.order,effectiveOrder:source.order});
-    }
-  }
+  const due=baseScheduledRoutinesOn(date);
+  const dueIds=new Set(due.map(routine=>routine.id));
+  const additions=activeTodayRoutineAdditions(date);
+  (additions?.routineIds||[]).forEach(routineId=>{
+    const added=all.find(routine=>routine.id===routineId&&routineAvailable(routine,date));
+    if(added&&!dueIds.has(added.id)){due.push(added);dueIds.add(added.id)}
+  });
   return sortRoutines(due);
 }
 function dueRoutinesOn(date=new Date()){
@@ -1072,45 +1088,36 @@ function renderAllRoutines(){
     E.allRoutines.appendChild(row);
   });
 }
-function routineSwitchSourceId(scheduled,active,preferredSourceId=""){
-  if(scheduled.some(routine=>routine.id===preferredSourceId))return preferredSourceId;
-  if(active&&scheduled.some(routine=>routine.id===active.fromRoutineId))return active.fromRoutineId;
-  return scheduled[0]?.id||"";
-}
-function renderRoutineSwitch(preferredSourceId=""){
+function renderRoutineAdditions(){
   const all=loadRoutines();
-  const scheduled=all.filter(routine=>routineAvailable(routine,new Date())&&scheduleMatches(routine,new Date()));
-  const active=activeTodayRoutineSwitch();
-  const requestedSourceId=preferredSourceId||E.todayRoutineSwitchFrom.value;
-  E.todayRoutineSwitchFrom.innerHTML=scheduled.map(routine=>'<option value="'+escapeHtml(routine.id)+'">'+escapeHtml(routine.name)+'</option>').join("");
-  const sourceId=routineSwitchSourceId(scheduled,active,requestedSourceId);
-  E.todayRoutineSwitchFrom.value=sourceId;
-  const targets=all.filter(routine=>routineAvailable(routine,new Date())&&routine.id!==sourceId);
-  E.todayRoutineSwitchTo.innerHTML=targets.map(routine=>'<option value="'+escapeHtml(routine.id)+'">'+escapeHtml(routine.name)+'</option>').join("");
-  if(active&&targets.some(routine=>routine.id===active.toRoutineId))E.todayRoutineSwitchTo.value=active.toRoutineId;
-  E.applyTodayRoutineSwitchBtn.disabled=!sourceId||targets.length===0;
-  E.clearTodayRoutineSwitchBtn.classList.toggle("hidden",!active);
-  if(active){
-    const from=all.find(routine=>routine.id===active.fromRoutineId);
-    const to=all.find(routine=>routine.id===active.toRoutineId);
-    E.todayRoutineSwitchStatus.textContent=from&&to?'Today: "'+to.name+'" replaces "'+from.name+'".':"";
-  }else E.todayRoutineSwitchStatus.textContent="";
+  const scheduledIds=new Set(baseScheduledRoutinesOn(new Date()).map(routine=>routine.id));
+  const active=activeTodayRoutineAdditions();
+  const addedIds=new Set(active?.routineIds||[]);
+  const candidates=all.filter(routine=>routineAvailable(routine,new Date())&&!scheduledIds.has(routine.id)&&!addedIds.has(routine.id));
+  E.todayRoutineAddSelect.innerHTML=candidates.length?candidates.map(routine=>'<option value="'+escapeHtml(routine.id)+'">'+escapeHtml(routine.name)+'</option>').join(""):'<option value="">No unscheduled routines available</option>';
+  E.addTodayRoutineBtn.disabled=candidates.length===0;
+  E.clearTodayRoutinesBtn.classList.toggle("hidden",addedIds.size===0);
+  const addedNames=all.filter(routine=>addedIds.has(routine.id)).map(routine=>routine.name);
+  E.todayRoutineAddStatus.textContent=addedNames.length?'Added today: '+addedNames.join(", ")+'.':"";
 }
-function applyTodayRoutineSwitch(){
-  const fromRoutineId=E.todayRoutineSwitchFrom.value;
-  const toRoutineId=E.todayRoutineSwitchTo.value;
-  const all=loadRoutines();
-  const from=all.find(routine=>routine.id===fromRoutineId);
-  const to=all.find(routine=>routine.id===toRoutineId);
-  if(!from||!to||from.id===to.id)return;
-  if(!confirm('Use "'+to.name+'" instead of "'+from.name+'" for Today only?\n\nYour normal schedule returns tomorrow.'))return;
-  saveSettings({...loadSettings(),todayRoutineSwitch:{date:getTodayKey(),fromRoutineId,toRoutineId}});
+function addTodayRoutine(){
+  const routineId=E.todayRoutineAddSelect.value;
+  const routine=loadRoutines().find(item=>item.id===routineId);
+  if(!routine)return;
+  if(!confirm('Add "'+routine.name+'" to Today?\n\nYour normal schedule returns tomorrow.'))return;
+  const settings=loadSettings();
+  const existing=settings.todayRoutineAdditions&&settings.todayRoutineAdditions.date===getTodayKey()?settings.todayRoutineAdditions.routineIds:[];
+  delete settings.todayRoutineSwitch;
+  settings.todayRoutineAdditions={date:getTodayKey(),routineIds:[...new Set([...(Array.isArray(existing)?existing:[]),routine.id])].map(String)};
+  saveSettings(settings);
   manuallyCollapsed={};
   endOfDayRoutineExpanded=false;
   render();
 }
-function clearTodayRoutineSwitch(){
+function clearTodayRoutineAdditions(){
+  if(!confirm("Remove all routines added for Today?\n\nYour normal schedule will remain unchanged."))return;
   const settings=loadSettings();
+  delete settings.todayRoutineAdditions;
   delete settings.todayRoutineSwitch;
   saveSettings(settings);
   manuallyCollapsed={};
@@ -1708,7 +1715,7 @@ function render(){
   renderSkipReview();
   renderEndOfDay();
   renderAllRoutines();
-  renderRoutineSwitch();
+  renderRoutineAdditions();
   renderStats();
   renderAppInfo();
   E.autoCollapseRoutines.checked=loadSettings().autoCollapseCompletedRoutines!==false;
@@ -1750,9 +1757,8 @@ function wireEvents(){
   });
   E.endOfDayReviewBtn.addEventListener("click",()=>{skipReviewExpanded=!skipReviewExpanded;render()});
   E.endOfDayRoutineBtn.addEventListener("click",()=>{endOfDayRoutineExpanded=!endOfDayRoutineExpanded;render()});
-  E.todayRoutineSwitchFrom.addEventListener("change",event=>renderRoutineSwitch(event.target.value));
-  E.applyTodayRoutineSwitchBtn.addEventListener("click",applyTodayRoutineSwitch);
-  E.clearTodayRoutineSwitchBtn.addEventListener("click",clearTodayRoutineSwitch);
+  E.addTodayRoutineBtn.addEventListener("click",addTodayRoutine);
+  E.clearTodayRoutinesBtn.addEventListener("click",clearTodayRoutineAdditions);
   E.autoCollapseRoutines.addEventListener("change",()=>{
     saveSettings({...loadSettings(),autoCollapseCompletedRoutines:E.autoCollapseRoutines.checked});
     manuallyCollapsed={};
@@ -1762,7 +1768,8 @@ function wireEvents(){
 }
 
 migrateLegacyData();
-clearExpiredTodayRoutineSwitch();
+migrateTodayRoutineSwitch();
+clearExpiredTodayRoutineAdditions();
 clearExpiredStepOverrides();
 clearExpiredRoutineStarts();
 clearExpiredStepRepeats();
@@ -1775,7 +1782,8 @@ render();
 createRecoverySnapshot("app opened").catch(()=>E.recoveryStatus.textContent="Recovery storage is unavailable. Use Export All Data for safety.");
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible"){
-    clearExpiredTodayRoutineSwitch();
+    migrateTodayRoutineSwitch();
+    clearExpiredTodayRoutineAdditions();
     clearExpiredStepOverrides();
     clearExpiredRoutineStarts();
     clearExpiredStepRepeats();

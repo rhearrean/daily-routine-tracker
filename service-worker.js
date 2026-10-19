@@ -1,7 +1,7 @@
-const CACHE_NAME="daily-routine-v12-5-1";
+const CACHE_NAME="daily-routine-v12-6-0";
 const UPDATE_GATE_BOOTSTRAP=false;
-const RELEASE_META={version:"12.5.1",summary:"Fixes the first selector in the Today-only routine switch.",notes:["The Instead of selector now keeps the routine you choose instead of jumping back to the first routine.","An existing Today switch can now be changed to a different source routine.","The replacement selector still refreshes so it cannot contain the same routine as the source.","No routines, steps, history, settings, or schema 8 data are changed."]};
-const FILES_TO_CACHE=["./index.html?v=12.5.1","./style.css?v=12.5.1","./app.js?v=12.5.1","./manifest.json?v=12.5.1","./icons/icon-192.png","./icons/icon-512.png"];
+const RELEASE_META={version:"12.6.0",summary:"Adds unscheduled routines to Today without replacing scheduled routines.",notes:["Today Only now adds a selected routine instead of switching one routine for another.","All normally scheduled routines stay in place, including Lunch and Evening.","Added routines use their normal saved order and disappear automatically tomorrow.","More than one routine can be added for Today, and Clear Added Routines removes the temporary additions early.","An active old-style switch is converted into an addition so its selected replacement is preserved.","No routine schedules, progress, history, or schema 8 data are changed."]};
+const FILES_TO_CACHE=["./index.html?v=12.6.0","./style.css?v=12.6.0","./app.js?v=12.6.0","./manifest.json?v=12.6.0","./icons/icon-192.png","./icons/icon-512.png"];
 
 // A newly installed worker waits until the user has exported a backup and
 // explicitly approves the update from inside the app.
@@ -26,7 +26,7 @@ self.addEventListener("fetch",event=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
       return response;
-    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.5.1"))));
+    }).catch(()=>caches.match("./index.html").then(response=>response||caches.match("./index.html?v=12.6.0"))));
     return;
   }
   event.respondWith(caches.match(event.request).then(response=>response||fetch(event.request)));
